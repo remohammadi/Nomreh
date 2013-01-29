@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+
+<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:em="http://www.mozilla.org/2004/em-rdf#">
+
+  <Description about="urn:mozilla:install-manifest">
+    <em:id>nomreh@teeleh.ir</em:id>
+    <em:name>Nomreh Scoring Panel</em:name>
+    <em:description>Store the scores of the judges in a contest, and see the rankings by one click.</em:description>
+    <em:version>0.1</em:version>
+    <em:creator>Reza Mohammadi</em:creator>
+    <em:homepageURL>http://teeleh.ir/nomreh/</em:homepageURL>
+    <em:iconURL>chrome://nomreh/skin/icon.png</em:iconURL>
+    <em:type>2</em:type>
+
+    <!-- Mozilla Firefox -->
+    <em:targetApplication>
+      <Description>
+        <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
+        <em:minVersion>4.0</em:minVersion>
+        <em:maxVersion>10.*</em:maxVersion>
+      </Description>
+    </em:targetApplication>
+  </Description>
+</RDF>

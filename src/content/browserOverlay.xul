@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+
+<?xml-stylesheet type="text/css" href="chrome://global/skin/" ?>
+<?xml-stylesheet type="text/css"
+	href="chrome://nomreh/skin/browserOverlay.css" ?>
+
+<!DOCTYPE overlay SYSTEM
+	"chrome://nomreh/locale/nomreh.dtd">
+
+<overlay id="nomreh-browser-overlay"
+	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	
+	<script type="application/javascript" src="chrome://browser/content/browser.js"/>
+
+	<menupopup id="menu_ToolsPopup">
+		<menuitem id="nomreh-menu" label="&nomreh.menu.label;"
+			accesskey="&nomreh.menu.accesskey;"
+			insertbefore="devToolsEndSeparator"
+			class="menuitem-iconic" image="chrome://nomreh/skin/icon-16.png"
+			oncommand="switchToTabHavingURI('chrome://nomreh/content/nomreh.xul', true);" />
+	</menupopup>
+
+	<vbox id="appmenuSecondaryPane">
+		<menuitem id="nomreh-menu-2" label="&nomreh.menu.label;"
+			accesskey="&nomreh.menu.accesskey;"
+			insertafter="appmenu_addons"
+			class="menuitem-iconic" image="chrome://nomreh/skin/icon-16.png"
+			oncommand="switchToTabHavingURI('chrome://nomreh/content/nomreh.xul', true);" />
+	</vbox>
+</overlay>

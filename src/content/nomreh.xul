@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+
+<!DOCTYPE overlay SYSTEM
+	"chrome://nomreh/locale/nomreh.dtd">
+
+<page xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+	xmlns:xhtml="http://www.w3.org/1999/xhtml"
+	id="addons-page" title="&nomreh.menu.label;"
+	role="application"
+	disablefastfind="true"
+	ondragenter="gDragDrop.onDragOver(event)"
+	ondragover="gDragDrop.onDragOver(event)"
+	ondrop="gDragDrop.onDrop(event)"
+	onkeypress="gHeader.onKeyPress(event)">
+
+	<xhtml:link rel="shortcut icon" href="chrome://nomreh/skin/icon-16.png" />
+
+	<script type="application/javascript" src="chrome://global/content/contentAreaUtils.js" />
+	<script type="application/javascript" src="chrome://nomreh/content/nomreh.js" />
+
+	<stringbundleset id="stringbundleset">
+		<stringbundle id="nomreh-string-bundle"
+			src="chrome://nomreh/locale/nomreh.properties" />
+	</stringbundleset>
+
+
+
+</page>
