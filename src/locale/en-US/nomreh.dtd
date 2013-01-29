@@ -1,2 +1,5 @@
-<!ENTITY nomreh.menu.label        "Nomreh Scoring Panel">
-<!ENTITY nomreh.menu.accesskey    "N">
+<!ENTITY nomreh.menu.label		"Nomreh Scoring Panel">
+<!ENTITY nomreh.menu.accesskey	"N">
+<!ENTITY nomreh.name			"Nomreh">
+<!ENTITY nomreh.contests		"Contests">
+<!ENTITY nomreh.new_contest		"New Contest">

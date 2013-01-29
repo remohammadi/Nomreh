@@ -1,30 +1,41 @@
 <?xml version="1.0"?>
+<!DOCTYPE overlay SYSTEM "chrome://nomreh/locale/nomreh.dtd">
 
-<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<xul:page xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+	xmlns="http://www.w3.org/1999/xhtml"
+	id="nomreh-page" title="&nomreh.menu.label;"
+	role="application" disablefastfind="true">
 
-<!DOCTYPE overlay SYSTEM
-	"chrome://nomreh/locale/nomreh.dtd">
+	<!-- Le styles -->
+	<link href="chrome://global/skin/" rel="stylesheet" />
+	<link href="chrome://nomreh/locale/bootstrap.css" rel="stylesheet" />
+	<link href="chrome://nomreh/locale/nomreh.css" rel="stylesheet" />
+	<link rel="shortcut icon" href="chrome://nomreh/skin/icon-16.png" />
 
-<page xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-	xmlns:xhtml="http://www.w3.org/1999/xhtml"
-	id="addons-page" title="&nomreh.menu.label;"
-	role="application"
-	disablefastfind="true"
-	ondragenter="gDragDrop.onDragOver(event)"
-	ondragover="gDragDrop.onDragOver(event)"
-	ondrop="gDragDrop.onDrop(event)"
-	onkeypress="gHeader.onKeyPress(event)">
+	<div class="navbar navbar-inverse navbar-fixed-top">
+		<div class="navbar-inner">
+			<div class="container">
+				<a class="brand" href="#">&nomreh.name;</a>
+				<ul class="nav">
+					<li class="active"><a href="#">&nomreh.contests;</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
 
-	<xhtml:link rel="shortcut icon" href="chrome://nomreh/skin/icon-16.png" />
-
-	<script type="application/javascript" src="chrome://global/content/contentAreaUtils.js" />
-	<script type="application/javascript" src="chrome://nomreh/content/nomreh.js" />
+	<div class="container npage">
+		<button class="btn btn-primary pull-right"
+			onclick="NomrehChrome.sayHello();">&nomreh.new_contest;</button>
+		<h1>&nomreh.contests;</h1>
+	</div>
 
 	<stringbundleset id="stringbundleset">
 		<stringbundle id="nomreh-string-bundle"
 			src="chrome://nomreh/locale/nomreh.properties" />
 	</stringbundleset>
 
-
-
-</page>
+	<xul:script type="application/javascript" src="chrome://global/content/contentAreaUtils.js" />
+	<xul:script type="application/javascript" src="chrome://nomreh/content/jquery-1.8.3.min.js" />
+	<xul:script type="application/javascript" src="chrome://nomreh/content/bootstrap.min.js" />
+	<xul:script type="application/javascript" src="chrome://nomreh/content/nomreh.js" />
+</xul:page>
