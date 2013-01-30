@@ -3,3 +3,5 @@
 <!ENTITY nomreh.name			"Nomreh">
 <!ENTITY nomreh.contests		"Contests">
 <!ENTITY nomreh.new_contest		"New Contest">
+<!ENTITY nomreh.title			"Title">
+<!ENTITY nomreh.creation_date	"Creation Date">

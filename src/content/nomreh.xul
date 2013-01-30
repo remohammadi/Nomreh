@@ -4,6 +4,7 @@
 <xul:page xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	xmlns="http://www.w3.org/1999/xhtml"
 	id="nomreh-page" title="&nomreh.menu.label;"
+	onload="NomrehChrome.init();"
 	role="application" disablefastfind="true">
 
 	<!-- Le styles -->
@@ -12,27 +13,39 @@
 	<link href="chrome://nomreh/locale/nomreh.css" rel="stylesheet" />
 	<link rel="shortcut icon" href="chrome://nomreh/skin/icon-16.png" />
 
-	<div class="navbar navbar-inverse navbar-fixed-top">
-		<div class="navbar-inner">
-			<div class="container">
-				<a class="brand" href="#">&nomreh.name;</a>
-				<ul class="nav">
-					<li class="active"><a href="#">&nomreh.contests;</a></li>
-				</ul>
-			</div>
-		</div>
+	<div class="container">
+		<ul class="breadcrumb" id="breadcrumb">
+			<li class="active">&nomreh.contests;</li>
+		</ul>
 	</div>
 
-	<div class="container npage">
+	<div id="contests" class="container npage">
 		<button class="btn btn-primary pull-right"
-			onclick="NomrehChrome.sayHello();">&nomreh.new_contest;</button>
+			onclick="NomrehChrome.goto('contest');">&nomreh.new_contest;</button>
 		<h1>&nomreh.contests;</h1>
+		<table class="table">
+			<thead>
+				<tr>
+					<td>&nomreh.title;</td>
+					<td>&nomreh.creation_date;</td>
+				</tr>
+			</thead>
+			<tbody id="contest-tbody" />
+		</table>
 	</div>
 
-	<stringbundleset id="stringbundleset">
-		<stringbundle id="nomreh-string-bundle"
+	<div id="contest" class="container npage" style="display: none">
+		<h1 id="contest_name" onclick="NomrehChrome.edit(this);">&nomreh.new_contest;</h1>
+	</div>
+
+	<div id="test" class="container npage" style="display: none">
+		<h1>BLAHBLAHBLAH</h1>
+	</div>
+
+	<xul:stringbundleset id="stringbundleset">
+		<xul:stringbundle id="nomreh-string-bundle"
 			src="chrome://nomreh/locale/nomreh.properties" />
-	</stringbundleset>
+	</xul:stringbundleset>
 
 	<xul:script type="application/javascript" src="chrome://global/content/contentAreaUtils.js" />
 	<xul:script type="application/javascript" src="chrome://nomreh/content/jquery-1.8.3.min.js" />
