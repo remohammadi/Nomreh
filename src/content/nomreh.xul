@@ -35,7 +35,7 @@
 	</div>
 
 	<div id="contest" class="container npage" style="display: none">
-		<h1 id="contest_name" onclick="NomrehChrome.edit(this);">&nomreh.new_contest;</h1>
+		<h1 id="contest_name" onclick="NomrehChrome.edit(this, 'contestTitleModified');">&nomreh.new_contest;</h1>
 	</div>
 
 	<div id="test" class="container npage" style="display: none">

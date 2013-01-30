@@ -17,7 +17,7 @@ NomrehChrome = {
 	stringBundle: 0,
 	contestTBody: 0,
 	breadcrumbRoot: 0,
-	init : function() {
+	init: function() {
 		this.logger = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService);
 
 		this.stringBundle = document.getElementById("nomreh-string-bundle");
@@ -44,9 +44,10 @@ NomrehChrome = {
 			let html = '<li><a href="#" onclick="NomrehChrome.goto(\'contests\');">' + contestsS + '</a> <span class="divider">&gt;</span></li>';
 			for (var i = 0; i < pages.length; i++) {
 				if (i < pages.length - 1) {
-					html += '<li><a href="#" onclick="NomrehChrome.goto(\'' + pages[i][1] + '\');">' + pages[i][0] + '</a> <span class="divider">&gt;</span></li>';
+					html += '<li><a id="breadcrumb-' + pages[i][0] + '" href="#" onclick="NomrehChrome.goto(\'' +
+						pages[i][0] + '\');">' + pages[i][1] + '</a> <span class="divider">&gt;</span></li>';
 				} else {
-					html += '<li class="active">' + pages[i] + '</li>'
+					html += '<li id="breadcrumb-' + pages[i][0] + '" class="active">' + pages[i][1] + '</li>'
 				}
 			}
 			this.breadcrumbRoot.innerHTML = html;
@@ -57,20 +58,19 @@ NomrehChrome = {
 		this.currentPage = page;
 		$('.npage').hide();
 		if (page == 'contest') {
-			let id = 0;
+			this.currentContest = {}
+
 			if (subpage == "undefined") {
 				let title = this.stringBundle.getString("nomreh.new_contest");
 				this.contestsDbConnection.executeSimpleSQL('INSERT INTO contests (title) VALUES("' + title + '")');
 				let statement = this.contestsDbConnection.createStatement("SELECT last_insert_rowid() as new_id FROM contests");
 				statement.executeStep();
-				id = statement.row.new_id;
+				this.currentContest._id = statement.row.new_id;
 			} else {
-				id = subpage;
+				this.currentContest._id = subpage;
 			}
 
-			this.currentContest = {}
-
-			let statement = this.contestsDbConnection.createStatement("SELECT title, date FROM contests WHERE id=" + id);
+			let statement = this.contestsDbConnection.createStatement("SELECT title, date FROM contests WHERE id=" + this.currentContest._id);
 			statement.executeStep();
 			this.currentContest.title = statement.row.title;
 			this.currentContest.date = statement.row.date;
@@ -81,23 +81,23 @@ NomrehChrome = {
 				this.currentContestDb.asyncClose();
 			}
 			let file = this.getLocalDirectory();
-			file.append("contest_" + id + ".sqlite");
+			file.append("contest_" + this.currentContest._id + ".sqlite");
 			let alreadyExists = file.exists();
 			this.currentContestDb = Services.storage.openDatabase(file); // create the file if not exist
 
 			if (!alreadyExists) {
-				this.logger.logStringMessage("Nomreh :: Creting contest [" + id + "] table.");
+				this.logger.logStringMessage("Nomreh :: Creting contest [" + this.currentContest._id + "] table.");
 				//this.currentContestDb.createTable("contests", "id INTEGER PRIMARY KEY, title TEXT, date TEXT DEFAULT CURRENT_TIMESTAMP");
 			}
 
-			this.setBreadcrumb([this.currentContest.title]);
+			this.setBreadcrumb([['contest', this.currentContest.title]]);
 		} else if (page == 'contests') {
 			this.loadContests();
 			this.setBreadcrumb([]);
 		}
 		$('#' + page).show();
 	},
-	loadContests : function() {
+	loadContests: function() {
 		this.contestTBody.innerHTML = "<tr><td colspan='2'>" +
 			this.stringBundle.getString("nomreh.loading") + "</td></tr>";
 		let statement = this.contestsDbConnection.createStatement("SELECT id, title, date FROM contests ORDER BY date DESC");
@@ -128,7 +128,7 @@ NomrehChrome = {
 			}
 		});
 	},
-	getLocalDirectory : function() {
+	getLocalDirectory: function() {
 		let directoryService =
 			Cc["@mozilla.org/file/directory_service;1"].
 				getService(Ci.nsIProperties);
@@ -144,26 +144,50 @@ NomrehChrome = {
 
 		return localDir;
 	},
-	edit : function(element) {
+	edit: function(element, on_change) {
 		element = $(element);
 		if (element.attr("editing") == 'true') return;
 		element.attr("editing", 'true');
 		let content = element.text();
-		element.html('<input type="text" value="' + content + '" original="' + content +
-			'" onkeyup="NomrehChrome.editKeyUp(event, this);" />');
+		let val = content.trim();
+		if (element.attr("last_editing")) {
+			val = element.attr("last_editing").trim();
+		}
+		element.html('<input type="text" value="' + val + '" original="' + content +
+			'" onkeyup="NomrehChrome.editKeyUp(event, this, \'' + on_change + '\');"' +
+			' onblur="NomrehChrome.editBlur(event, this)" />');
 		element.children()[0].focus();
 	},
-	editKeyUp : function(event, element) {
+	editKeyUp: function(event, element, on_change) {
 		var keyCode = ('which' in event) ? event.which : event.keyCode;
 		if ((keyCode == 13) || (keyCode == 27)) {
 			el = $(element);
 			let val = el.attr("original");
 			let p = el.parent();
 			if (keyCode == 13) {
-				val = element.value;
+				val = element.value.trim();
 			}
 			p.html(val);
-			p.attr("editing", 'false');
+			p.removeAttr("last_editing")
+			p.removeAttr("editing");
+			if (keyCode == 13 && on_change) {
+				NomrehChrome[on_change].call(this, p, val);
+			}
 		}
-	}
+	},
+	editBlur: function(event, element) {
+		let el = $(element);
+		let p = el.parent();
+		p.attr("last_editing", element.value);
+		p.html(el.attr("original"));
+		p.attr("editing", 'false');
+	},
+	contestTitleModified: function(element, new_val) {
+		var sql = 'UPDATE contests SET title="' + new_val + '" WHERE id=' + this.currentContest._id;
+		this.contestsDbConnection.executeSimpleSQL(sql);
+		let breadcrumb = document.getElementById("breadcrumb-contest");
+		if (breadcrumb) {
+			breadcrumb.innerHTML = new_val;
+		}
+	},
 };
