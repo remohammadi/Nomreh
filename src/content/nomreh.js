@@ -17,10 +17,9 @@ NomrehChrome = {
 	stringBundle: 0,
 	contestTBody: 0,
 	breadcrumbRoot: 0,
-	init: function() {
+	init: function(window) {
 		this.logger = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService);
 
-		this.stringBundle = document.getElementById("nomreh-string-bundle");
 		this.contestTBody = document.getElementById("contest-tbody");
 		this.breadcrumbRoot = document.getElementById("breadcrumb");
 
@@ -37,7 +36,7 @@ NomrehChrome = {
 		this.loadContests();
 	},
 	setBreadcrumb: function(pages) {
-		let contestsS = this.stringBundle.getString("nomreh.contests");;
+		let contestsS = this.getMessage("nomreh.contests");
 		if (pages.length == 0) {
 			this.breadcrumbRoot.innerHTML = '<li class="active">' + contestsS + '</li>';
 		} else {
@@ -61,7 +60,7 @@ NomrehChrome = {
 			this.currentContest = {}
 
 			if (subpage == "undefined") {
-				let title = this.stringBundle.getString("nomreh.new_contest");
+				let title = this.getMessage("nomreh.new_contest");
 				this.contestsDbConnection.executeSimpleSQL('INSERT INTO contests (title) VALUES("' + title + '")');
 				let statement = this.contestsDbConnection.createStatement("SELECT last_insert_rowid() as new_id FROM contests");
 				statement.executeStep();
@@ -98,8 +97,8 @@ NomrehChrome = {
 		$('#' + page).show();
 	},
 	loadContests: function() {
-		this.contestTBody.innerHTML = "<tr><td colspan='2'>" +
-			this.stringBundle.getString("nomreh.loading") + "</td></tr>";
+		this.contestTBody.innerHTML = "<tr><td colspan='3'>" +
+			this.getMessage("nomreh.loading") + "</td></tr>";
 		let statement = this.contestsDbConnection.createStatement("SELECT id, title, date FROM contests ORDER BY date DESC");
 		statement.executeAsync({
 			html: '',
@@ -108,10 +107,14 @@ NomrehChrome = {
 				for (let row = aResultSet.getNextRow();
 				row;
 				row = aResultSet.getNextRow()) {
-					this.html += "<tr><td><a href='#' onclick='NomrehChrome.goto(\"contest\", ";
-					this.html += row.getResultByName("id") + ")'>";
-					this.html += row.getResultByName("title") + "</a></td>";
-					this.html += "<td>" + row.getResultByName("date") + "</td></tr>\n";
+					var _id = row.getResultByName("id");
+					var title = row.getResultByName("title");
+					this.html += "<tr><td><a href='#' onclick='NomrehChrome.goto(\"contest\", " + _id + ")'>";
+					this.html += title + "</a></td>";
+					this.html += "<td>" + row.getResultByName("date") + "</td>";
+					this.html += "<td><a class='btn btn-small btn-danger' role='button' data-toggle='modal' ";
+					this.html += "href='#deleteModal' onclick='NomrehChrome.removeContest(" + _id + ", \"";
+					this.html += title + "\")'><i class='icon-white icon-remove'></i></a></td></tr>\n";
 				}
 			},
 
@@ -190,4 +193,35 @@ NomrehChrome = {
 			breadcrumb.innerHTML = new_val;
 		}
 	},
+	removeContest: function(_id, title) {
+		let prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].
+			getService(Ci.nsIPromptService);
+
+		if (prompts.confirm(window, this.getMessage("nomreh.delete_title", [title], 1),
+							this.getMessage("nomreh.delete_sure"))) {
+			var sql = 'DELETE FROM contests WHERE id=' + _id;
+			this.contestsDbConnection.executeSimpleSQL(sql);
+			this.loadContests();
+		}
+	},
+    getMessage: function(msg, ar) {
+		try {
+			return this.strings.getMessage(msg, ar);
+		} catch (e) {
+			this.alert(null, "Error reading string resource: " + msg); // Do not localize!
+		}
+    },
+	strings: {
+		_sbs: Cc["@mozilla.org/intl/stringbundle;1"]
+			.getService(Ci.nsIStringBundleService)
+			.createBundle("chrome://nomreh/locale/nomreh.properties"),
+
+		getMessage: function(msg, ar) {
+			if (ar) {
+				return this._sbs.formatStringFromName(msg, ar, ar.length)
+			} else {
+				return this._sbs.GetStringFromName(msg);
+			}
+		}
+	}
 };

@@ -60,7 +60,8 @@ xpi_built := install.rdf \
              $(wildcard content/*.css) \
              $(wildcard skin/*.css) \
              $(wildcard skin/*.png) \
-             $(wildcard locale/*/*.css) \
+             $(wildcard locale/*/img/*.png) \
+             $(wildcard locale/*/css/*.css) \
              $(wildcard locale/*/*.dtd) \
              $(wildcard locale/*/*.properties)
 

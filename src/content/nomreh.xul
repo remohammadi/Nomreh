@@ -4,13 +4,12 @@
 <xul:page xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	xmlns="http://www.w3.org/1999/xhtml"
 	id="nomreh-page" title="&nomreh.menu.label;"
-	onload="NomrehChrome.init();"
+	onload="NomrehChrome.init(window);"
 	role="application" disablefastfind="true">
 
 	<!-- Le styles -->
 	<link href="chrome://global/skin/" rel="stylesheet" />
-	<link href="chrome://nomreh/locale/bootstrap.css" rel="stylesheet" />
-	<link href="chrome://nomreh/locale/nomreh.css" rel="stylesheet" />
+	<link href="chrome://nomreh/locale/css/bootstrap.css" rel="stylesheet" />
 	<link rel="shortcut icon" href="chrome://nomreh/skin/icon-16.png" />
 
 	<div class="container">
@@ -28,6 +27,7 @@
 				<tr>
 					<td>&nomreh.title;</td>
 					<td>&nomreh.creation_date;</td>
+					<td>&nomreh.delete_qm;</td>
 				</tr>
 			</thead>
 			<tbody id="contest-tbody" />
@@ -41,11 +41,6 @@
 	<div id="test" class="container npage" style="display: none">
 		<h1>BLAHBLAHBLAH</h1>
 	</div>
-
-	<xul:stringbundleset id="stringbundleset">
-		<xul:stringbundle id="nomreh-string-bundle"
-			src="chrome://nomreh/locale/nomreh.properties" />
-	</xul:stringbundleset>
 
 	<xul:script type="application/javascript" src="chrome://global/content/contentAreaUtils.js" />
 	<xul:script type="application/javascript" src="chrome://nomreh/content/jquery-1.8.3.min.js" />
