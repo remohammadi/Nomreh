@@ -1,8 +1,17 @@
 <!ENTITY nomreh.menu.label		"Nomreh Scoring Panel">
 <!ENTITY nomreh.menu.accesskey	"N">
 <!ENTITY nomreh.name			"Nomreh">
+<!ENTITY nomreh.preparing		"Preparing…">
 <!ENTITY nomreh.contests		"Contests">
 <!ENTITY nomreh.new_contest		"New Contest">
-<!ENTITY nomreh.title			"Title">
+<!ENTITY nomreh.contest_title	"Title">
 <!ENTITY nomreh.creation_date	"Creation Date">
 <!ENTITY nomreh.delete_qm		"Delete?">
+<!ENTITY nomreh.judges			"Judges">
+<!ENTITY nomreh.tests			"Tests">
+<!ENTITY nomreh.add				"Add">
+<!ENTITY nomreh.judge_name		"Name">
+<!ENTITY nomreh.test_title		"Title">
+<!ENTITY nomreh.test_factor		"Factor">
+<!ENTITY nomreh.input_scores	"Input Scores">
+<!ENTITY nomreh.rankings		"Rankings">

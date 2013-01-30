@@ -10,6 +10,7 @@
 	<!-- Le styles -->
 	<link href="chrome://global/skin/" rel="stylesheet" />
 	<link href="chrome://nomreh/locale/css/bootstrap.css" rel="stylesheet" />
+	<link href="chrome://nomreh/locale/css/nomreh.css" rel="stylesheet" />
 	<link rel="shortcut icon" href="chrome://nomreh/skin/icon-16.png" />
 
 	<div class="container">
@@ -25,9 +26,9 @@
 		<table class="table">
 			<thead>
 				<tr>
-					<td>&nomreh.title;</td>
-					<td>&nomreh.creation_date;</td>
-					<td>&nomreh.delete_qm;</td>
+					<th>&nomreh.contest_title;</th>
+					<th>&nomreh.creation_date;</th>
+					<th>&nomreh.delete_qm;</th>
 				</tr>
 			</thead>
 			<tbody id="contest-tbody" />
@@ -35,11 +36,53 @@
 	</div>
 
 	<div id="contest" class="container npage" style="display: none">
-		<h1 id="contest_name" onclick="NomrehChrome.edit(this, 'contestTitleModified');">&nomreh.new_contest;</h1>
+		<div class="page-header">
+			<h1 id="contest_name" onclick="NomrehChrome.edit(this, 'contestTitleModified');">&nomreh.new_contest;</h1>
+		</div>
+		<div class="container-fluid">
+			<div class="row-fluid">
+				<div class="span6 well">
+					<h2>&nomreh.judges;</h2>
+					<table class="table">
+						<thead>
+							<tr>
+								<th>&nomreh.judge_name;</th>
+								<th>&nomreh.delete_qm;</th>
+							</tr>
+						</thead>
+						<tbody id="judges-tbody" />
+					</table>
+				</div>
+				<div class="span6 well">
+					<h2>&nomreh.tests;</h2>
+					<table class="table">
+						<thead>
+							<tr>
+								<th>&nomreh.test_title;</th>
+								<th>&nomreh.test_factor;</th>
+								<th>&nomreh.delete_qm;</th>
+							</tr>
+						</thead>
+						<tbody id="judges-tbody" />
+					</table>
+				</div>
+			</div>
+			<div class="row-fluid">
+				<button type="button" class="btn btn-large">&nomreh.input_scores;</button>
+				<button type="button" class="btn btn-large">&nomreh.rankings;</button>
+			</div>
+		</div>
 	</div>
 
 	<div id="test" class="container npage" style="display: none">
 		<h1>BLAHBLAHBLAH</h1>
+	</div>
+
+	<div id="loading" style="display: none;">
+		<div>
+			<img src="chrome://global/skin/icons/loading_16.png" />
+			<strong>&nomreh.preparing;</strong>
+		</div>
 	</div>
 
 	<xul:script type="application/javascript" src="chrome://global/content/contentAreaUtils.js" />

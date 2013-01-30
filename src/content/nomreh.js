@@ -17,11 +17,14 @@ NomrehChrome = {
 	stringBundle: 0,
 	contestTBody: 0,
 	breadcrumbRoot: 0,
+	loading: 0,
 	init: function(window) {
 		this.logger = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService);
+		this.prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
 
 		this.contestTBody = document.getElementById("contest-tbody");
 		this.breadcrumbRoot = document.getElementById("breadcrumb");
+		this.loading = document.getElementById("loading");
 
 		let file = this.getLocalDirectory();
 		file.append("nomreh.sqlite");
@@ -34,6 +37,14 @@ NomrehChrome = {
 		}
 
 		this.loadContests();
+	},
+	showLoading: function() {
+		let l = $(this.loading);
+		l.show();
+	},
+	hideLoading: function() {
+		let l = $(this.loading);
+		l.hide();
 	},
 	setBreadcrumb: function(pages) {
 		let contestsS = this.getMessage("nomreh.contests");
@@ -57,9 +68,10 @@ NomrehChrome = {
 		this.currentPage = page;
 		$('.npage').hide();
 		if (page == 'contest') {
+			this.showLoading();
 			this.currentContest = {}
 
-			if (subpage == "undefined") {
+			if (! subpage) {
 				let title = this.getMessage("nomreh.new_contest");
 				this.contestsDbConnection.executeSimpleSQL('INSERT INTO contests (title) VALUES("' + title + '")');
 				let statement = this.contestsDbConnection.createStatement("SELECT last_insert_rowid() as new_id FROM contests");
@@ -86,35 +98,119 @@ NomrehChrome = {
 
 			if (!alreadyExists) {
 				this.logger.logStringMessage("Nomreh :: Creting contest [" + this.currentContest._id + "] table.");
-				//this.currentContestDb.createTable("contests", "id INTEGER PRIMARY KEY, title TEXT, date TEXT DEFAULT CURRENT_TIMESTAMP");
-			}
+				this.currentContestDb.createTable("judges", "id INTEGER PRIMARY KEY, title TEXT");
+				this.currentContestDb.createTable("tests", "id INTEGER PRIMARY KEY, title TEXT, factor REAL");
+				this.currentContestDb.createTable("students", "id INTEGER PRIMARY KEY, fname TEXT, lname TEXT, org TEXT, desc TEXT");
+				this.currentContestDb.createTable("scores", "student_id INTEGER, judge_id INTEGER, test_id INTEGER, val REAL, UNIQUE(student_id, judge_id, test_id) ON CONFLICT REPLACE");
+				this.currentContestDb.createTable("penalties", "student_id INTEGER, test_id INTEGER, val REAL, UNIQUE(student_id, test_id) ON CONFLICT REPLACE");
 
-			this.setBreadcrumb([['contest', this.currentContest.title]]);
+				this.currentContest.judges = {};
+				this.currentContest.tests = {};
+				this.currentContest.students = {};
+				this.currentContest.scores = {};
+				this.currentContest.penalties = {};
+
+				this.loadContestDetails();
+			} else {
+				this.loadContestDb({'judges': true, 'tests': true, 'callback': this.loadContestDetails});
+			}
 		} else if (page == 'contests') {
 			this.loadContests();
 			this.setBreadcrumb([]);
+			$('#contests').show();
 		}
-		$('#' + page).show();
+	},
+	loadContestDbLock: 0,
+	loadContestDb: function(flags) {
+		if (NomrehChrome.loadContestDbLock > 0) {
+			this.logger.logStringMessage("Nomreh :: loadContestDbLock= " + NomrehChrome.loadContestDbLock);
+			return;
+		}
+		if ('judges' in flags) NomrehChrome.loadContestDbLock += 1;
+		if ('tests' in flags) NomrehChrome.loadContestDbLock += 1;
+
+		var _handleCompletion = function(aReason) {
+			if (aReason != Components.interfaces.mozIStorageStatementCallback.REASON_FINISHED) {
+				NomrehChrome.logger.logStringMessage("Nomreh :: Query canceled or aborted!");
+			}
+
+			NomrehChrome.loadContestDbLock -= 1;
+			if ((NomrehChrome.loadContestDbLock == 0) && ('callback' in flags)) {
+				flags['callback'].call(NomrehChrome);
+			}
+		};
+		var _handleError = function(aError) {
+			NomrehChrome.logger.logStringMessage("Nomreh :: Error: " + aError.message);
+		};
+
+		if ('judges' in flags) {
+			NomrehChrome.currentContest.judges = {'num': 0};
+
+			let statement = this.currentContestDb.createStatement("SELECT id, title FROM judges ORDER BY id");
+			statement.executeAsync({
+				handleResult: function(aResultSet) {
+					for (let row = aResultSet.getNextRow(); row;
+							row = aResultSet.getNextRow()) {
+						NomrehChrome.currentContest.judges[row.getResultByName("id")] = row.getResultByName("title");
+						NomrehChrome.currentContest.judges.num += 1;
+					}
+				},
+				handleError: _handleError,
+				handleCompletion: _handleCompletion
+			});
+		}
+
+		if ('tests' in flags) {
+			NomrehChrome.currentContest.tests = {'num': 0};
+
+			let statement = this.currentContestDb.createStatement("SELECT id, title, factor FROM tests ORDER BY id");
+			NomrehChrome.currentContest.tests.num = 0;
+			statement.executeAsync({
+				handleResult: function(aResultSet) {
+					for (let row = aResultSet.getNextRow(); row;
+							row = aResultSet.getNextRow()) {
+						NomrehChrome.currentContest.tests[row.getResultByName("id")] = [row.getResultByName("title"), row.getResultByName("factor")];
+						NomrehChrome.currentContest.tests.num += 1;
+					}
+				},
+				handleError: _handleError,
+				handleCompletion: _handleCompletion
+			});
+		}
+	},
+	loadContestDetails: function() {
+		let html = "";
+		for (_id in this.currentContest.judges) {
+			if (_id == 'num') continue;
+			let j_title = this.currentContest.judges[_id];
+			html += "<tr><td data-dbid='" + _id + "' onclick=\"NomrehChrome.edit(this, 'judgeTitleModified');\">" + j_title + "</td>";
+			html +=	"<td><a class='btn btn-small btn-danger' onclick='NomrehChrome.removeJudge(";
+			html += _id + ")'><i class='icon-white icon-remove'></i></a></td></tr>";
+		}
+		let ph = this.getMessage("nomreh.new_judge_ph");
+		html += "<tr><td colspan='2'><input class='input-block-level' type='text' placeholder='" + ph;
+		html += "' onkeyup='NomrehChrome.newJudge(event, this)' /></td></tr>";
+		document.getElementById("judges-tbody").innerHTML = html;
+
+		this.setBreadcrumb([['contest', this.currentContest.title]]);
+		this.hideLoading();
+		$('#contest').show();
 	},
 	loadContests: function() {
-		this.contestTBody.innerHTML = "<tr><td colspan='3'>" +
-			this.getMessage("nomreh.loading") + "</td></tr>";
 		let statement = this.contestsDbConnection.createStatement("SELECT id, title, date FROM contests ORDER BY date DESC");
 		statement.executeAsync({
 			html: '',
 
 			handleResult: function(aResultSet) {
-				for (let row = aResultSet.getNextRow();
-				row;
-				row = aResultSet.getNextRow()) {
+				for (let row = aResultSet.getNextRow(); row;
+						row = aResultSet.getNextRow()) {
 					var _id = row.getResultByName("id");
 					var title = row.getResultByName("title");
 					this.html += "<tr><td><a href='#' onclick='NomrehChrome.goto(\"contest\", " + _id + ")'>";
 					this.html += title + "</a></td>";
 					this.html += "<td>" + row.getResultByName("date") + "</td>";
-					this.html += "<td><a class='btn btn-small btn-danger' role='button' data-toggle='modal' ";
-					this.html += "href='#deleteModal' onclick='NomrehChrome.removeContest(" + _id + ", \"";
-					this.html += title + "\")'><i class='icon-white icon-remove'></i></a></td></tr>\n";
+					this.html += "<td><a class='btn btn-small btn-danger' onclick='NomrehChrome.removeContest(";
+					this.html += _id + ", \"" + title + "\")'><i class='icon-white icon-remove'></i></a></td></tr>\n";
 				}
 			},
 
@@ -193,16 +289,51 @@ NomrehChrome = {
 			breadcrumb.innerHTML = new_val;
 		}
 	},
+	newJudge: function(event, element) {
+		var keyCode = ('which' in event) ? event.which : event.keyCode;
+		if (keyCode == 13) {
+			this.showLoading();
+			var v = element.value.trim();
+			if (v == "") {
+				v = this.getMessage("nomreh.new_judge_default") + (this.currentContest.judges.num + 1);
+			}
+			this.currentContestDb.executeSimpleSQL('INSERT INTO judges (title) VALUES("' + v + '")');
+			this.loadContestDb({'judges': true, 'callback': this.loadContestDetails});
+		}
+	},
+	judgeTitleModified: function(element, new_val) {
+		let el = $(element);
+		this.currentContestDb.executeSimpleSQL('UPDATE judges SET title="' + new_val + '" WHERE id=' + el.attr("data-dbid"));
+	},
 	removeContest: function(_id, title) {
-		let prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].
-			getService(Ci.nsIPromptService);
-
-		if (prompts.confirm(window, this.getMessage("nomreh.delete_title", [title], 1),
+		if (this.prompts.confirm(window, this.getMessage("nomreh.delete_title", [title], 1),
 							this.getMessage("nomreh.delete_sure"))) {
 			var sql = 'DELETE FROM contests WHERE id=' + _id;
 			this.contestsDbConnection.executeSimpleSQL(sql);
 			this.loadContests();
 		}
+	},
+	removeJudge: function(_id) {
+		let statement = this.currentContestDb.createStatement("SELECT count(*) AS c FROM scores WHERE judge_id=" + _id);
+		statement.executeStep();
+		if (statement.row.c > 0) {
+			let statement = this.currentContestDb.createStatement("SELECT title FROM judges WHERE id=" + _id);
+			statement.executeStep();
+			if (this.prompts.confirm(window, this.getMessage("nomreh.delete_title", [statement.row.title]),
+								this.getMessage("nomreh.delete_judge_sure"))) {
+				this.showLoading();
+				this.currentContestDb.executeSimpleSQL("DELETE FROM scores WHERE judge_id=" + _id);
+				this.currentContestDb.executeSimpleSQL("DELETE FROM judges WHERE id=" + _id);
+				this.loadContestDb({'judges': true, 'callback': this.loadContestDetails});
+			}
+		} else {
+			this.showLoading();
+			this.currentContestDb.executeSimpleSQL("DELETE FROM judges WHERE id=" + _id);
+			this.loadContestDb({'judges': true, 'callback': this.loadContestDetails});
+		}
+	},
+	removeTest: function(_id) {
+		// TODO
 	},
     getMessage: function(msg, ar) {
 		try {
