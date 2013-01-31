@@ -1,0 +1,22 @@
+#loading {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #DEDCE6;
+	opacity: 0.8;
+    z-index: 100;
+}
+#loading>div {
+    position: relative;
+	left: 50%;
+	top: 50%;
+}
+
+.nomreh-editable {
+	cursor: pointer;
+}
+.nomreh-editable:hover {
+	background: #CAE8A2;
+}

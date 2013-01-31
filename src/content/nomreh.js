@@ -4,6 +4,7 @@ if ("undefined" == typeof(NomrehChrome)) {
 
 const Ci = Components.interfaces;
 const Cc = Components.classes;
+const VALID_DECIMAL_KEYS = {0:1, 13:1, 27:1, 9:1, 8:1, 16:1, 48:1, 49:1, 50:1, 51:1, 52:1, 53:1, 54:1, 55:1, 56:1, 57:1, 46:1};
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
@@ -104,11 +105,9 @@ NomrehChrome = {
 				this.currentContestDb.createTable("scores", "student_id INTEGER, judge_id INTEGER, test_id INTEGER, val REAL, UNIQUE(student_id, judge_id, test_id) ON CONFLICT REPLACE");
 				this.currentContestDb.createTable("penalties", "student_id INTEGER, test_id INTEGER, val REAL, UNIQUE(student_id, test_id) ON CONFLICT REPLACE");
 
-				this.currentContest.judges = {};
-				this.currentContest.tests = {};
-				this.currentContest.students = {};
-				this.currentContest.scores = {};
-				this.currentContest.penalties = {};
+				this.currentContest.judges = {'num': 0};
+				this.currentContest.tests = {'num': 0};
+				this.currentContest.students = {'num': 0};
 
 				this.loadContestDetails();
 			} else {
@@ -137,6 +136,9 @@ NomrehChrome = {
 			NomrehChrome.loadContestDbLock -= 1;
 			if ((NomrehChrome.loadContestDbLock == 0) && ('callback' in flags)) {
 				flags['callback'].call(NomrehChrome);
+			}
+			if ('focus' in flags) {
+				document.getElementById(flags['focus']).focus();
 			}
 		};
 		var _handleError = function(aError) {
@@ -183,14 +185,32 @@ NomrehChrome = {
 		for (_id in this.currentContest.judges) {
 			if (_id == 'num') continue;
 			let j_title = this.currentContest.judges[_id];
-			html += "<tr><td data-dbid='" + _id + "' onclick=\"NomrehChrome.edit(this, 'judgeTitleModified');\">" + j_title + "</td>";
+			html += "<tr><td class='nomreh-editable' data-dbid='" + _id + "' onclick=\"NomrehChrome.edit(this, 'judgeTitleModified');\">" + j_title + "</td>";
 			html +=	"<td><a class='btn btn-small btn-danger' onclick='NomrehChrome.removeJudge(";
 			html += _id + ")'><i class='icon-white icon-remove'></i></a></td></tr>";
 		}
 		let ph = this.getMessage("nomreh.new_judge_ph");
-		html += "<tr><td colspan='2'><input class='input-block-level' type='text' placeholder='" + ph;
+		html += "<tr><td colspan='2'><input id='new-judge-title' class='input-block-level' type='text' placeholder='" + ph;
 		html += "' onkeyup='NomrehChrome.newJudge(event, this)' /></td></tr>";
 		document.getElementById("judges-tbody").innerHTML = html;
+
+		let html = "";
+		for (_id in this.currentContest.tests) {
+			if (_id == 'num') continue;
+			let t_title = this.currentContest.tests[_id][0];
+			let t_factor = this.currentContest.tests[_id][1];
+			html += "<tr><td class='nomreh-editable' data-dbid='" + _id + "' onclick=\"NomrehChrome.edit(this, 'testTitleModified');\">" + t_title + "</td>";
+			html += "<td class='nomreh-editable' data-dbid='" + _id + "' onclick=\"NomrehChrome.edit(this, 'testFactorModified', 'testFactorInput');\">" + t_factor + "</td>";
+			html +=	"<td><a class='btn btn-small btn-danger' onclick='NomrehChrome.removeTest(";
+			html += _id + ")'><i class='icon-white icon-remove'></i></a></td></tr>";
+		}
+		let ph = this.getMessage("nomreh.new_test_ph");
+		html += "<tr><td colspan='3' class='form-inline'>";
+		html += "<input id='new-test-title' type='text' placeholder='" + ph + "' onkeyup='NomrehChrome.newTest(event, this)' /> ";
+		html += "<input id='new-test-factor' type='number' value='1.0' onkeyup='return NomrehChrome.newTest(event, this);'"
+		html += " onkeypress='return NomrehChrome.testFactorInput(event, this);' class='input-small' />";
+		html += "</td></tr>";
+		document.getElementById("tests-tbody").innerHTML = html;
 
 		this.setBreadcrumb([['contest', this.currentContest.title]]);
 		this.hideLoading();
@@ -243,7 +263,7 @@ NomrehChrome = {
 
 		return localDir;
 	},
-	edit: function(element, on_change) {
+	edit: function(element, on_change, on_keypress) {
 		element = $(element);
 		if (element.attr("editing") == 'true') return;
 		element.attr("editing", 'true');
@@ -252,13 +272,27 @@ NomrehChrome = {
 		if (element.attr("last_editing")) {
 			val = element.attr("last_editing").trim();
 		}
+		if (on_keypress) {
+			on_keypress = ' onkeypress="return NomrehChrome.' + on_keypress + '(event, this);"';
+		} else {
+			on_keypress = '';
+		}
 		element.html('<input type="text" value="' + val + '" original="' + content +
-			'" onkeyup="NomrehChrome.editKeyUp(event, this, \'' + on_change + '\');"' +
+			'" onkeyup="return NomrehChrome.editKeyUp(event, this, \'' + on_change + '\');"' +
+			on_keypress +
 			' onblur="NomrehChrome.editBlur(event, this)" />');
 		element.children()[0].focus();
 	},
-	editKeyUp: function(event, element, on_change) {
+	editKeyUp: function(event, element, on_change, on_keyup) {
 		var keyCode = ('which' in event) ? event.which : event.keyCode;
+
+		if (on_keyup) {
+			let res = NomrehChrome[on_keyup].call(this, element, event, keyCode);
+			if (! res) {
+				return false;
+			}
+		}
+
 		if ((keyCode == 13) || (keyCode == 27)) {
 			el = $(element);
 			let val = el.attr("original");
@@ -273,6 +307,7 @@ NomrehChrome = {
 				NomrehChrome[on_change].call(this, p, val);
 			}
 		}
+		return true;
 	},
 	editBlur: function(event, element) {
 		let el = $(element);
@@ -298,22 +333,69 @@ NomrehChrome = {
 				v = this.getMessage("nomreh.new_judge_default") + (this.currentContest.judges.num + 1);
 			}
 			this.currentContestDb.executeSimpleSQL('INSERT INTO judges (title) VALUES("' + v + '")');
-			this.loadContestDb({'judges': true, 'callback': this.loadContestDetails});
+			this.loadContestDb({'judges': true, 'focus': 'new-judge-title', 'callback': this.loadContestDetails});
+		}
+	},
+	newTest: function(event, element) {
+		var keyCode = ('which' in event) ? event.which : event.keyCode;
+
+		if (keyCode == 13) {
+			this.showLoading();
+			var title = document.getElementById("new-test-title").value.trim();
+			if (title == "") {
+				title = this.getMessage("nomreh.new_test_default") + (this.currentContest.tests.num + 1);
+			}
+			var factor = document.getElementById("new-test-factor").value.trim();
+			this.currentContestDb.executeSimpleSQL('INSERT INTO tests (title, factor) VALUES("' + title + '", ' + factor + ')');
+			this.loadContestDb({'tests': true, 'focus': 'new-test-title', 'callback': this.loadContestDetails});
 		}
 	},
 	judgeTitleModified: function(element, new_val) {
 		let el = $(element);
 		this.currentContestDb.executeSimpleSQL('UPDATE judges SET title="' + new_val + '" WHERE id=' + el.attr("data-dbid"));
 	},
+	testTitleModified: function(element, new_val) {
+		let el = $(element);
+		this.currentContestDb.executeSimpleSQL('UPDATE tests SET title="' + new_val + '" WHERE id=' + el.attr("data-dbid"));
+	},
+	testFactorModified: function(element, new_val) {
+		let el = $(element);
+		this.currentContestDb.executeSimpleSQL('UPDATE tests SET factor="' + new_val + '" WHERE id=' + el.attr("data-dbid"));
+	},
+	testFactorInput: function(event, element) {
+		if (event.metaKey) {
+			return true;
+		}
+		var keyCode = ('which' in event) ? event.which : event.keyCode;
+
+		if (! (keyCode in VALID_DECIMAL_KEYS)) {
+			return false;
+		}
+		return true;
+	},
 	removeContest: function(_id, title) {
 		if (this.prompts.confirm(window, this.getMessage("nomreh.delete_title", [title], 1),
 							this.getMessage("nomreh.delete_sure"))) {
+
+			this.currentContestDb = 0;
+			this.currentContest = {};
+
 			var sql = 'DELETE FROM contests WHERE id=' + _id;
 			this.contestsDbConnection.executeSimpleSQL(sql);
+
+			let file = this.getLocalDirectory();
+			file.append("contest_" + _id + ".sqlite");
+			file.remove(false);
+
 			this.loadContests();
 		}
 	},
 	removeJudge: function(_id) {
+		var _del = function() {
+			NomrehChrome.currentContestDb.executeSimpleSQL("DELETE FROM judges WHERE id=" + _id);
+			NomrehChrome.loadContestDb({'judges': true, 'callback': NomrehChrome.loadContestDetails});
+		};
+
 		let statement = this.currentContestDb.createStatement("SELECT count(*) AS c FROM scores WHERE judge_id=" + _id);
 		statement.executeStep();
 		if (statement.row.c > 0) {
@@ -323,17 +405,39 @@ NomrehChrome = {
 								this.getMessage("nomreh.delete_judge_sure"))) {
 				this.showLoading();
 				this.currentContestDb.executeSimpleSQL("DELETE FROM scores WHERE judge_id=" + _id);
-				this.currentContestDb.executeSimpleSQL("DELETE FROM judges WHERE id=" + _id);
-				this.loadContestDb({'judges': true, 'callback': this.loadContestDetails});
+				_del();
 			}
 		} else {
 			this.showLoading();
-			this.currentContestDb.executeSimpleSQL("DELETE FROM judges WHERE id=" + _id);
-			this.loadContestDb({'judges': true, 'callback': this.loadContestDetails});
+			_del();
 		}
 	},
 	removeTest: function(_id) {
-		// TODO
+		var _del = function() {
+			NomrehChrome.currentContestDb.executeSimpleSQL("DELETE FROM tests WHERE id=" + _id);
+			NomrehChrome.loadContestDb({'tests': true, 'callback': NomrehChrome.loadContestDetails});
+		};
+
+		let statement = this.currentContestDb.createStatement("SELECT count(*) AS c FROM scores WHERE test_id=" + _id);
+		statement.executeStep();
+		if (statement.row.c == 0) {
+			let statement = this.currentContestDb.createStatement("SELECT count(*) AS c FROM penalties WHERE test_id=" + _id);
+			statement.executeStep();
+		}
+		if (statement.row.c > 0) {
+			let statement = this.currentContestDb.createStatement("SELECT title FROM tests WHERE id=" + _id);
+			statement.executeStep();
+			if (this.prompts.confirm(window, this.getMessage("nomreh.delete_title", [statement.row.title]),
+								this.getMessage("nomreh.delete_test_sure"))) {
+				this.showLoading();
+				this.currentContestDb.executeSimpleSQL("DELETE FROM scores WHERE test_id=" + _id);
+				this.currentContestDb.executeSimpleSQL("DELETE FROM penalties WHERE test_id=" + _id);
+				_del();
+			}
+		} else {
+			this.showLoading();
+			_del();
+		}
 	},
     getMessage: function(msg, ar) {
 		try {
