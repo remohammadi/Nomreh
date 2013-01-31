@@ -26,9 +26,9 @@
 		<table class="table">
 			<thead>
 				<tr>
-					<th>&nomreh.contest_title;</th>
+					<th width='50%'>&nomreh.contest_title;</th>
 					<th>&nomreh.creation_date;</th>
-					<th>&nomreh.delete_qm;</th>
+					<th width='15%'>&nomreh.delete_qm;</th>
 				</tr>
 			</thead>
 			<tbody id="contest-tbody" />
@@ -48,7 +48,7 @@
 						<thead>
 							<tr>
 								<th>&nomreh.judge_name;</th>
-								<th>&nomreh.delete_qm;</th>
+								<th width='15%'>&nomreh.delete_qm;</th>
 							</tr>
 						</thead>
 						<tbody id="judges-tbody" />
@@ -60,8 +60,8 @@
 						<thead>
 							<tr>
 								<th>&nomreh.test_title;</th>
-								<th>&nomreh.test_factor;</th>
-								<th>&nomreh.delete_qm;</th>
+								<th width='30%'>&nomreh.test_factor;</th>
+								<th width='15%'>&nomreh.delete_qm;</th>
 							</tr>
 						</thead>
 						<tbody id="tests-tbody" />
