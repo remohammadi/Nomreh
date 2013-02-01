@@ -275,7 +275,7 @@ NomrehChrome = {
 			let t_title = this.currentContest.tests[_id].title;
 			let t_factor = this.currentContest.tests[_id].factor;
 			html += "<tr><td class='nomreh-editable' data-dbid='" + _id + "' onclick=\"NomrehChrome.edit(this, 'testTitleModified');\">" + t_title + "</td>";
-			html += "<td class='nomreh-editable' data-dbid='" + _id + "' onclick=\"NomrehChrome.edit(this, 'testFactorModified', 'testFactorInput');\">" + t_factor + "</td>";
+			html += "<td class='nomreh-editable' data-dbid='" + _id + "' onclick=\"NomrehChrome.edit(this, 'testFactorModified', 'numericInput');\">" + t_factor + "</td>";
 			html +=	"<td><a class='btn btn-small btn-danger' onclick='NomrehChrome.removeTest(";
 			html += _id + ")'><i class='icon-white icon-remove'></i></a></td></tr>";
 		}
@@ -283,7 +283,7 @@ NomrehChrome = {
 		html += "<tr><td colspan='3' class='form-inline'>";
 		html += "<input id='new-test-title' type='text' placeholder='" + ph + "' onkeyup='NomrehChrome.newTest(event, this)' /> ";
 		html += "<input id='new-test-factor' type='number' value='1.0' onkeyup='return NomrehChrome.newTest(event, this);'"
-		html += " onkeypress='return NomrehChrome.testFactorInput(event, this);' class='input-small' />";
+		html += " onkeypress='return NomrehChrome.numericInput(event, this);' class='input-small' />";
 		html += "</td></tr>";
 		document.getElementById("tests-tbody").innerHTML = html;
 
@@ -460,7 +460,7 @@ NomrehChrome = {
 		let el = $(element);
 		this.currentContestDb.executeSimpleSQL('UPDATE tests SET factor="' + new_val + '" WHERE id=' + el.attr("data-dbid"));
 	},
-	testFactorInput: function(event, element) {
+	numericInput: function(event, element) {
 		if (event.metaKey) {
 			return true;
 		}
@@ -568,6 +568,35 @@ NomrehChrome = {
 		document.getElementById("player-lname").innerHTML = statement.row.lname;
 		document.getElementById("player-org").innerHTML = statement.row.org;
 		document.getElementById("player-notes").value = statement.row.notes;
+
+		var thead = "<tr><th rowspan='2'>" + this.getMessage("nomreh.scroing_title_test") + "</th>";
+		thead += "<th style='text-align: center' colspan='" + this.currentContest.judges.num + "'>" + this.getMessage("nomreh.scroing_title_scores_by_judges") + "</th>";
+		thead += "<th rowspan='2'>TODO</th>";
+		thead += "<th rowspan='2'>TODO</th>";
+		thead += "<th rowspan='2'>TODO</th></tr><tr>";
+		for (j_id in this.currentContest.judges) {
+			if (j_id == 'num') continue;
+			thead += "<td>" + this.currentContest.judges[j_id] + "</td>";
+		}
+		thead += "</tr>";
+
+		var tbody = "";
+		for (_id in this.currentContest.tests) {
+			if (_id == 'num') continue;
+			tbody += "<tr><td>" + this.currentContest.tests[_id].title + "</td>";
+			for (j_id in this.currentContest.judges) {
+				if (j_id != 'num') {
+					tbody += '<td><input type="text" maxlength="3" onkeypress="return NomrehChrome.numericInput(event, this);" class="input-small" style="width: 2em" /></td>';
+				}
+			}
+			tbody += "<td>.</td>";
+			tbody += '<td><input type="text" maxlength="4" onkeypress="return NomrehChrome.numericInput(event, this);" class="input-small" style="width: 2em" /></td>';
+			tbody += "<td>.</td></tr>";
+		}
+
+		document.getElementById("scoring-thead").innerHTML = thead;
+		document.getElementById("scoring-tbody").innerHTML = tbody;
+
 		$(this.scoringPanelDiv).show();
 		this.hideLoading();
 	},

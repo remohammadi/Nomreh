@@ -15,13 +15,13 @@
 
 	<br />
 
-	<div class="container">
+	<div class="container-fluid">
 		<ul class="breadcrumb" id="breadcrumb">
 			<li class="active">&nomreh.contests;</li>
 		</ul>
 	</div>
 
-	<div id="contests" class="container npage">
+	<div id="contests" class="container-fluid npage">
 		<div class="pull-right">
 			<button class="btn btn-large btn-primary"
 				onclick="NomrehChrome.goto('contest');">&nomreh.new_contest;</button>
@@ -39,7 +39,7 @@
 		</table>
 	</div>
 
-	<div id="contest" class="container npage" style="display: none">
+	<div id="contest" class="container-fluid npage" style="display: none">
 		<div class="page-header">
 			<div class="pull-right">
 				<button id="input-scores-btn" type="button" class="btn btn-large" 
@@ -81,7 +81,7 @@
 		</div>
 	</div>
 
-	<div id="scoring" class="container npage" style="display: none">
+	<div id="scoring" class="container-fluid npage" style="display: none">
 		<div class="container-fluid">
 			<div class="row-fluid">
 				<div class="span3 well">
@@ -100,14 +100,13 @@
 					</h1>
 					<h4 id="player-org" style="width: 80%" class="nomreh-editable"
 						onclick="NomrehChrome.edit(this, 'playerOrgModified');">Organization</h4>
-					<table>
+					<table class="table table-bordered">
 						<thead id="scoring-thead" />
-						<tbody id="scoring-tbody" />
+						<tbody id="scoring-tbody" class="form-inline" />
 					</table>
 					<div>
 						<textarea id="player-notes" rows="3" placeholder="&nomreh.player_notes_ph;"
-							onkeypress="NomrehChrome.editDefaultKeyPress(event, this);" />
-						<span class="badge badge-success" style="display: none">&nomreh.player_notes_saved;</span>
+							onkeypress="return NomrehChrome.editDefaultKeyPress(event, this);" />
 					</div>
 					<div>
 						<button type="button" class="btn btn-large btn-primary" 
@@ -120,7 +119,7 @@
 		</div>
 	</div>
 
-	<div id="rankings" class="container npage" style="display: none">
+	<div id="rankings" class="container-fluid npage" style="display: none">
 		<h1>TODO</h1>
 	</div>
 
