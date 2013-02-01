@@ -5,13 +5,15 @@
 	xmlns="http://www.w3.org/1999/xhtml"
 	id="nomreh-page" title="&nomreh.menu.label;"
 	onload="NomrehChrome.init(window);"
-	role="application" disablefastfind="true">
+	role="application" disablefastfind="true"><xul:vbox flex="1" style="overflow:auto">
 
 	<!-- Le styles -->
 	<link href="chrome://global/skin/" rel="stylesheet" />
 	<link href="chrome://nomreh/locale/css/bootstrap.css" rel="stylesheet" />
 	<link href="chrome://nomreh/locale/css/nomreh.css" rel="stylesheet" />
 	<link rel="shortcut icon" href="chrome://nomreh/skin/icon-16.png" />
+
+	<br />
 
 	<div class="container">
 		<ul class="breadcrumb" id="breadcrumb">
@@ -20,8 +22,10 @@
 	</div>
 
 	<div id="contests" class="container npage">
-		<button class="btn btn-primary pull-right"
-			onclick="NomrehChrome.goto('contest');">&nomreh.new_contest;</button>
+		<div class="pull-right">
+			<button class="btn btn-large btn-primary"
+				onclick="NomrehChrome.goto('contest');">&nomreh.new_contest;</button>
+		</div>
 		<h1>&nomreh.contests;</h1>
 		<table class="table">
 			<thead>
@@ -37,7 +41,13 @@
 
 	<div id="contest" class="container npage" style="display: none">
 		<div class="page-header">
-			<h1 id="contest_name" class="nomreh-editable"
+			<div class="pull-right">
+				<button id="input-scores-btn" type="button" class="btn btn-large" 
+					onclick="NomrehChrome.goto('scoring');">&nomreh.input_scores;</button>
+				<button id="rankings-btn" type="button" class="btn btn-large"
+					onclick="NomrehChrome.goto('rankings');">&nomreh.rankings;</button>
+			</div>
+			<h1 id="contest_name" class="nomreh-editable" style="width: 60%"
 				onclick="NomrehChrome.edit(this, 'contestTitleModified');">&nomreh.new_contest;</h1>
 		</div>
 		<div class="container-fluid">
@@ -68,15 +78,50 @@
 					</table>
 				</div>
 			</div>
+		</div>
+	</div>
+
+	<div id="scoring" class="container npage" style="display: none">
+		<div class="container-fluid">
 			<div class="row-fluid">
-				<button type="button" class="btn btn-large">&nomreh.input_scores;</button>
-				<button type="button" class="btn btn-large">&nomreh.rankings;</button>
+				<div class="span3 well">
+					<h2 class="nav-header">&nomreh.players;</h2>
+					<ul id="players-ul" class="nav nav-list" />
+					<br />
+					<button type="button" class="btn btn-block btn-small"
+						onclick="NomrehChrome.newPlayer();">&nomreh.new_player;</button>
+				</div>
+				<div id="scoring-panel-div" class="span9 well">
+					<h1 id="player_name" style="width: 80%">
+						<span id="player-fname" class="nomreh-editable"
+							onclick="NomrehChrome.edit(this, 'playerFNameModified');">John</span>
+						<span id="player-lname" class="nomreh-editable"
+							onclick="NomrehChrome.edit(this, 'playerLNameModified');">Smith</span>
+					</h1>
+					<h4 id="player-org" style="width: 80%" class="nomreh-editable"
+						onclick="NomrehChrome.edit(this, 'playerOrgModified');">Organization</h4>
+					<table>
+						<thead id="scoring-thead" />
+						<tbody id="scoring-tbody" />
+					</table>
+					<div>
+						<textarea id="player-notes" rows="3" placeholder="&nomreh.player_notes_ph;"
+							onkeypress="NomrehChrome.editDefaultKeyPress(event, this);" />
+						<span class="badge badge-success" style="display: none">&nomreh.player_notes_saved;</span>
+					</div>
+					<div>
+						<button type="button" class="btn btn-large btn-primary" 
+							onclick="NomrehChrome.nextPlayer();">&nomreh.player_next;</button>
+						<button type="button" class="btn btn-large btn-danger"
+							onclick="NomrehChrome.deletePlayer();">&nomreh.player_delete;</button>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
 
-	<div id="test" class="container npage" style="display: none">
-		<h1>BLAHBLAHBLAH</h1>
+	<div id="rankings" class="container npage" style="display: none">
+		<h1>TODO</h1>
 	</div>
 
 	<div id="loading" style="display: none;">
@@ -90,4 +135,4 @@
 	<xul:script type="application/javascript" src="chrome://nomreh/content/jquery-1.8.3.min.js" />
 	<xul:script type="application/javascript" src="chrome://nomreh/content/bootstrap.min.js" />
 	<xul:script type="application/javascript" src="chrome://nomreh/content/nomreh.js" />
-</xul:page>
+</xul:vbox></xul:page>

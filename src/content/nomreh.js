@@ -5,6 +5,7 @@ if ("undefined" == typeof(NomrehChrome)) {
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 const VALID_DECIMAL_KEYS = {0:1, 13:1, 27:1, 9:1, 8:1, 16:1, 48:1, 49:1, 50:1, 51:1, 52:1, 53:1, 54:1, 55:1, 56:1, 57:1, 46:1};
+const DEFAULT_INVALID_KEYS = {60: 1, 62:1}
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
@@ -18,7 +19,12 @@ NomrehChrome = {
 	stringBundle: 0,
 	contestTBody: 0,
 	breadcrumbRoot: 0,
+	inputScoresBtn: 0,
+	rankingsBtn: 0,
 	loading: 0,
+	currentPlayerId: 0,
+	playersUl: 0,
+	scoringPanelDiv: 0,
 	init: function(window) {
 		this.logger = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService);
 		this.prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
@@ -26,6 +32,10 @@ NomrehChrome = {
 		this.contestTBody = document.getElementById("contest-tbody");
 		this.breadcrumbRoot = document.getElementById("breadcrumb");
 		this.loading = document.getElementById("loading");
+		this.inputScoresBtn = document.getElementById("input-scores-btn");
+		this.rankingsBtn = document.getElementById("rankings-btn");
+		this.playersUl = document.getElementById("players-ul");
+		this.scoringPanelDiv = document.getElementById("scoring-panel-div");
 
 		let file = this.getLocalDirectory();
 		file.append("nomreh.sqlite");
@@ -55,8 +65,12 @@ NomrehChrome = {
 			let html = '<li><a href="#" onclick="NomrehChrome.goto(\'contests\');">' + contestsS + '</a> <span class="divider">&gt;</span></li>';
 			for (var i = 0; i < pages.length; i++) {
 				if (i < pages.length - 1) {
+					var subpage = "";
+					if (pages[i][2]) {
+						subpage = ", " + pages[i][2];
+					}
 					html += '<li><a id="breadcrumb-' + pages[i][0] + '" href="#" onclick="NomrehChrome.goto(\'' +
-						pages[i][0] + '\');">' + pages[i][1] + '</a> <span class="divider">&gt;</span></li>';
+						pages[i][0] + "'" + subpage + ');">' + pages[i][1] + '</a> <span class="divider">&gt;</span></li>';
 				} else {
 					html += '<li id="breadcrumb-' + pages[i][0] + '" class="active">' + pages[i][1] + '</li>'
 				}
@@ -101,22 +115,38 @@ NomrehChrome = {
 				this.logger.logStringMessage("Nomreh :: Creting contest [" + this.currentContest._id + "] table.");
 				this.currentContestDb.createTable("judges", "id INTEGER PRIMARY KEY, title TEXT");
 				this.currentContestDb.createTable("tests", "id INTEGER PRIMARY KEY, title TEXT, factor REAL");
-				this.currentContestDb.createTable("students", "id INTEGER PRIMARY KEY, fname TEXT, lname TEXT, org TEXT, desc TEXT");
-				this.currentContestDb.createTable("scores", "student_id INTEGER, judge_id INTEGER, test_id INTEGER, val REAL, UNIQUE(student_id, judge_id, test_id) ON CONFLICT REPLACE");
-				this.currentContestDb.createTable("penalties", "student_id INTEGER, test_id INTEGER, val REAL, UNIQUE(student_id, test_id) ON CONFLICT REPLACE");
+				this.currentContestDb.createTable("players", "id INTEGER PRIMARY KEY, fname TEXT, lname TEXT, org TEXT, notes TEXT");
+				this.currentContestDb.createTable("scores", "player_id INTEGER, judge_id INTEGER, test_id INTEGER, val REAL, UNIQUE(player_id, judge_id, test_id) ON CONFLICT REPLACE");
+				this.currentContestDb.createTable("penalties", "player_id INTEGER, test_id INTEGER, val REAL, UNIQUE(player_id, test_id) ON CONFLICT REPLACE");
 
 				this.currentContest.judges = {'num': 0};
 				this.currentContest.tests = {'num': 0};
-				this.currentContest.students = {'num': 0};
+				this.currentContest.players = [];
 
+				NomrehChrome.inputScoresBtn.setAttribute("disabled","disabled");
+				NomrehChrome.rankingsBtn.setAttribute("disabled","disabled");
 				this.loadContestDetails();
 			} else {
-				this.loadContestDb({'judges': true, 'tests': true, 'callback': this.loadContestDetails});
+				this.loadContestDb({'judges': true, 'tests': true, 'players': true, 'callback': this.loadContestDetails});
 			}
 		} else if (page == 'contests') {
 			this.loadContests();
 			this.setBreadcrumb([]);
 			$('#contests').show();
+		} else if (page == 'scoring') {
+			this.setBreadcrumb([
+				['contest', this.currentContest.title, this.currentContest._id],
+				['scoring', this.getMessage("nomreh.scoring_panel")]
+			]);
+			this.currentPlayerId = 0;
+			$(this.scoringPanelDiv).hide();
+			this.loadContestDb({'players': true, 'callback': this.loadPlayersList});
+		} else if (page == 'rankings') {
+			this.setBreadcrumb([
+				['contest', this.currentContest.title, this.currentContest._id],
+				['rankings', this.getMessage("nomreh.rankings")]
+			]);
+			$('#rankings').show();
 		}
 	},
 	loadContestDbLock: 0,
@@ -125,8 +155,18 @@ NomrehChrome = {
 			this.logger.logStringMessage("Nomreh :: loadContestDbLock= " + NomrehChrome.loadContestDbLock);
 			return;
 		}
-		if ('judges' in flags) NomrehChrome.loadContestDbLock += 1;
-		if ('tests' in flags) NomrehChrome.loadContestDbLock += 1;
+		if ('judges' in flags) {
+			NomrehChrome.loadContestDbLock += 1;
+			NomrehChrome.currentContest.judges = {'num': 0};
+		}
+		if ('tests' in flags) {
+			NomrehChrome.loadContestDbLock += 1;
+			NomrehChrome.currentContest.tests = {'num': 0};
+		}
+		if ('players' in flags) {
+			NomrehChrome.loadContestDbLock += 1;
+			NomrehChrome.currentContest.players = [];
+		}
 
 		var _handleCompletion = function(aReason) {
 			if (aReason != Components.interfaces.mozIStorageStatementCallback.REASON_FINISHED) {
@@ -134,11 +174,30 @@ NomrehChrome = {
 			}
 
 			NomrehChrome.loadContestDbLock -= 1;
-			if ((NomrehChrome.loadContestDbLock == 0) && ('callback' in flags)) {
-				flags['callback'].call(NomrehChrome);
-			}
-			if ('focus' in flags) {
-				document.getElementById(flags['focus']).focus();
+			if (NomrehChrome.loadContestDbLock == 0) {
+				if ('callback' in flags) {
+					flags['callback'].call(NomrehChrome);
+				}
+
+				if ('focus' in flags) {
+					document.getElementById(flags['focus']).focus();
+				}
+
+				var inputScoresBtnEnabled = NomrehChrome.currentContest.judges.num > 0;
+				inputScoresBtnEnabled &= NomrehChrome.currentContest.tests.num > 0;
+				if (inputScoresBtnEnabled) {
+					NomrehChrome.inputScoresBtn.removeAttribute("disabled");
+				} else {
+					NomrehChrome.inputScoresBtn.setAttribute("disabled","disabled");
+				}
+
+				var rankingsBtnEnabled = inputScoresBtnEnabled;
+				rankingsBtnEnabled &= NomrehChrome.currentContest.players.length > 0;
+				if (rankingsBtnEnabled) {
+					NomrehChrome.rankingsBtn.removeAttribute("disabled");
+				} else {
+					NomrehChrome.rankingsBtn.setAttribute("disabled","disabled");
+				}
 			}
 		};
 		var _handleError = function(aError) {
@@ -146,8 +205,6 @@ NomrehChrome = {
 		};
 
 		if ('judges' in flags) {
-			NomrehChrome.currentContest.judges = {'num': 0};
-
 			let statement = this.currentContestDb.createStatement("SELECT id, title FROM judges ORDER BY id");
 			statement.executeAsync({
 				handleResult: function(aResultSet) {
@@ -163,16 +220,34 @@ NomrehChrome = {
 		}
 
 		if ('tests' in flags) {
-			NomrehChrome.currentContest.tests = {'num': 0};
-
 			let statement = this.currentContestDb.createStatement("SELECT id, title, factor FROM tests ORDER BY id");
-			NomrehChrome.currentContest.tests.num = 0;
 			statement.executeAsync({
 				handleResult: function(aResultSet) {
 					for (let row = aResultSet.getNextRow(); row;
 							row = aResultSet.getNextRow()) {
-						NomrehChrome.currentContest.tests[row.getResultByName("id")] = [row.getResultByName("title"), row.getResultByName("factor")];
+						NomrehChrome.currentContest.tests[row.getResultByName("id")] = {
+							'title': row.getResultByName("title"),
+							'factor': row.getResultByName("factor")
+						};
 						NomrehChrome.currentContest.tests.num += 1;
+					}
+				},
+				handleError: _handleError,
+				handleCompletion: _handleCompletion
+			});
+		}
+
+		if ('players' in flags) {
+			let statement = this.currentContestDb.createStatement("SELECT id, fname, lname FROM players ORDER BY id");
+			statement.executeAsync({
+				handleResult: function(aResultSet) {
+					for (let row = aResultSet.getNextRow(); row;
+							row = aResultSet.getNextRow()) {
+						NomrehChrome.currentContest.players.push({
+							'id': row.getResultByName("id"),
+							'fname': row.getResultByName("fname"),
+							'lname': row.getResultByName("lname")
+						});
 					}
 				},
 				handleError: _handleError,
@@ -197,8 +272,8 @@ NomrehChrome = {
 		let html = "";
 		for (_id in this.currentContest.tests) {
 			if (_id == 'num') continue;
-			let t_title = this.currentContest.tests[_id][0];
-			let t_factor = this.currentContest.tests[_id][1];
+			let t_title = this.currentContest.tests[_id].title;
+			let t_factor = this.currentContest.tests[_id].factor;
 			html += "<tr><td class='nomreh-editable' data-dbid='" + _id + "' onclick=\"NomrehChrome.edit(this, 'testTitleModified');\">" + t_title + "</td>";
 			html += "<td class='nomreh-editable' data-dbid='" + _id + "' onclick=\"NomrehChrome.edit(this, 'testFactorModified', 'testFactorInput');\">" + t_factor + "</td>";
 			html +=	"<td><a class='btn btn-small btn-danger' onclick='NomrehChrome.removeTest(";
@@ -247,6 +322,20 @@ NomrehChrome = {
 			}
 		});
 	},
+	loadPlayersList: function() {
+		let html = "";
+		for (p_order in this.currentContest.players) {
+			var p = this.currentContest.players[p_order];
+			var cls = '';
+			if (this.currentPlayerId == p.id) {
+				cls = 'class="active" ';
+			}
+			html += '<li ' + cls + 'id="player-li-' + p.id + '"><a data-dbid="' + p.id;
+			html += '" href="#" onclick="NomrehChrome.selectPlayer(this)">' + p.fname + ' ' + p.lname + '</a></li>';
+		}
+		this.playersUl.innerHTML = html;
+		$('#scoring').show();
+	},
 	getLocalDirectory: function() {
 		let directoryService =
 			Cc["@mozilla.org/file/directory_service;1"].
@@ -272,14 +361,12 @@ NomrehChrome = {
 		if (element.attr("last_editing")) {
 			val = element.attr("last_editing").trim();
 		}
-		if (on_keypress) {
-			on_keypress = ' onkeypress="return NomrehChrome.' + on_keypress + '(event, this);"';
-		} else {
-			on_keypress = '';
+		if (! on_keypress) {
+			on_keypress = 'editDefaultKeyPress';
 		}
 		element.html('<input type="text" value="' + val + '" original="' + content +
 			'" onkeyup="return NomrehChrome.editKeyUp(event, this, \'' + on_change + '\');"' +
-			on_keypress +
+			' onkeypress="return NomrehChrome.' + on_keypress + '(event, this);"' +
 			' onblur="NomrehChrome.editBlur(event, this)" />');
 		element.children()[0].focus();
 	},
@@ -306,6 +393,17 @@ NomrehChrome = {
 			if (keyCode == 13 && on_change) {
 				NomrehChrome[on_change].call(this, p, val);
 			}
+		}
+		return true;
+	},
+	editDefaultKeyPress: function(event, element) {
+		if (event.metaKey) {
+			return true;
+		}
+		var keyCode = ('which' in event) ? event.which : event.keyCode;
+
+		if (keyCode in DEFAULT_INVALID_KEYS) {
+			return false;
 		}
 		return true;
 	},
@@ -439,11 +537,77 @@ NomrehChrome = {
 			_del();
 		}
 	},
+	newPlayer: function() {
+		this.showLoading();
+		var p = {
+			'fname': this.getMessage("nomreh.new_player_df_fname"),
+			'lname': this.getMessage("nomreh.new_player_df_lname"),
+			'org': this.getMessage("nomreh.new_player_df_org"),
+			'notes': ''
+		};
+		var sql = 'INSERT INTO players (fname, lname, org, notes) VALUES("';
+		sql += p.fname + '", "' + p.lname + '", "' + p.org + '", "' + p.notes + '")';
+		this.currentContestDb.executeSimpleSQL(sql);
+		let statement = this.currentContestDb.createStatement("SELECT last_insert_rowid() as new_id FROM players");
+		statement.executeStep();
+		this.currentPlayerId = statement.row.new_id;
+		var html = '<li id="player-li-' + this.currentPlayerId + '"><a data-dbid="' + this.currentPlayerId;
+		html += '" href="#" onclick="NomrehChrome.selectPlayer(this)">' + p.fname + ' ' + p.lname + '</a></li>';
+		this.playersUl.innerHTML += html;
+		this.selectPlayer(document.getElementById("player-li-" + this.currentPlayerId).firstChild);
+	},
+	selectPlayer: function(element) {
+		this.showLoading();
+		$("#players-ul .active").removeClass('active');
+		var el = $(element);
+		el.parent().addClass('active');
+		this.currentPlayerId = el.attr("data-dbid");
+		let statement = this.currentContestDb.createStatement("SELECT fname, lname, org, notes FROM players WHERE id=" + this.currentPlayerId);
+		statement.executeStep();
+		document.getElementById("player-fname").innerHTML = statement.row.fname;
+		document.getElementById("player-lname").innerHTML = statement.row.lname;
+		document.getElementById("player-org").innerHTML = statement.row.org;
+		document.getElementById("player-notes").value = statement.row.notes;
+		$(this.scoringPanelDiv).show();
+		this.hideLoading();
+	},
+	nextPlayer: function() {
+		// TODO
+	},
+	deletePlayer: function() {
+		let statement = this.currentContestDb.createStatement("SELECT fname, lname FROM players WHERE id=" + this.currentPlayerId);
+		statement.executeStep();
+		if (this.prompts.confirm(window, this.getMessage("nomreh.delete_title", [statement.row.fname + ' ' + statement.row.lname], 1),
+							this.getMessage("nomreh.delete_sure"))) {
+
+			$(this.scoringPanelDiv).hide();
+
+			var sql = 'DELETE FROM players WHERE id=' + this.currentPlayerId;
+			this.currentContestDb.executeSimpleSQL(sql);
+			this.currentPlayerId = 0;
+
+			this.loadContestDb({'players': true, 'callback': this.loadPlayersList});
+		}
+	},
+	playerFNameModified: function(element, new_val) {
+		let el = $(element);
+		this.currentContestDb.executeSimpleSQL('UPDATE players SET fname="' + new_val + '" WHERE id=' + this.currentPlayerId);
+		this.loadContestDb({'players': true, 'callback': this.loadPlayersList});
+	},
+	playerLNameModified: function(element, new_val) {
+		let el = $(element);
+		this.currentContestDb.executeSimpleSQL('UPDATE players SET lname="' + new_val + '" WHERE id=' + this.currentPlayerId);
+		this.loadContestDb({'players': true, 'callback': this.loadPlayersList});
+	},
+	playerOrgModified: function(element, new_val) {
+		let el = $(element);
+		this.currentContestDb.executeSimpleSQL('UPDATE players SET org="' + new_val + '" WHERE id=' + this.currentPlayerId);
+	},
     getMessage: function(msg, ar) {
 		try {
 			return this.strings.getMessage(msg, ar);
 		} catch (e) {
-			this.alert(null, "Error reading string resource: " + msg); // Do not localize!
+			alert(null, "Error reading string resource: " + msg); // Do not localize!
 		}
     },
 	strings: {
