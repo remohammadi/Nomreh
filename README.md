@@ -4,7 +4,7 @@ Store the scores of the judges in a contest, and see the rankings by one click.
 
 ## Why firefox extension ?
 
-First, I liked html and javascript. I wanted it not to be dependant to a server, and to be easy to install.
+First, I like html and javascript. Second, I wanted the app not to be dependant to a server, and to be easy to install.
 So, web browser extension was a suitable choice.
 
 ## How to build?
