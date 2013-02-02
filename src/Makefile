@@ -33,9 +33,6 @@ else
   endif
 endif
 
-# The temporary location where the extension tree will be copied and built.
-build_dir := $(bin_dir)/build
-
 # This builds the extension XPI file.
 .PHONY: all
 all: $(xpi_file)
@@ -46,8 +43,7 @@ all: $(xpi_file)
 # This cleans all temporary files and directories created by 'make'.
 .PHONY: clean
 clean:
-	@rm -rf $(build_dir)
-	@rm -f $(xpi_file)
+	@rm -rf $(bin_dir)
 	@echo "Cleanup is done."
 
 # The sources for the XPI file.
@@ -65,20 +61,10 @@ xpi_built := install.rdf \
              $(wildcard locale/*/*.dtd) \
              $(wildcard locale/*/*.properties)
 
-$(build_dir):
-	@mkdir $(build_dir)
+$(bin_dir):
+	@mkdir $(bin_dir)
 
-# This builds everything except for the actual XPI, and then it copies it to the
-# specified profile directory, allowing a quick update that requires no install.
-.PHONY: install
-install: $(build_dir) $(xpi_built)
-	@echo "Installing in profile folder: $(profile_location)"
-	@cp -Rf $(build_dir)/* $(profile_location)
-	@echo "Installing in profile folder. Done!"
-	@echo
-
-
-$(xpi_file): $(xpi_built)
+$(xpi_file): $(bin_dir) $(xpi_built)
 	@echo "Creating XPI file."
 	@$(ZIP) $(xpi_file) $(xpi_built)
 	@echo "Creating XPI file. Done!"
