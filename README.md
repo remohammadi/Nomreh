@@ -1,4 +1,4 @@
-## What does it do?
+## What can you do with it?
 
 Store the scores of the judges in a contest, and see the rankings by one click.
 
