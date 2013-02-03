@@ -29,3 +29,16 @@ page>vbox {
 .nomreh-editable:hover {
 	background: #CAE8A2;
 }
+
+#scoring span.add-on {
+	padding-right: 0;
+	padding-left: 0;
+	color: #9D261D;
+}
+
+#scoring .center {
+	text-align: center;
+}
+#scoring .reverse {
+	text-align: right;
+}

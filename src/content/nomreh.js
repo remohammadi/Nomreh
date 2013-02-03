@@ -25,6 +25,7 @@ NomrehChrome = {
 	currentPlayerId: 0,
 	playersUl: 0,
 	scoringPanelDiv: 0,
+	toBeStored: 0,
 	init: function(window) {
 		this.logger = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService);
 		this.prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
@@ -78,7 +79,14 @@ NomrehChrome = {
 			this.breadcrumbRoot.innerHTML = html;
 		}
 	},
+	storeTheStuff: function() {
+		this.toBeStored.call(this);
+		this.toBeStored = 0;
+	},
 	goto: function(page, subpage) {
+		if (this.toBeStored) {
+			this.storeTheStuff();
+		}
 		if (page == this.currentPage) return;
 		this.currentPage = page;
 		$('.npage').hide();
@@ -167,6 +175,11 @@ NomrehChrome = {
 			NomrehChrome.loadContestDbLock += 1;
 			NomrehChrome.currentContest.players = [];
 		}
+		if ('scores_penalties' in flags) {
+			NomrehChrome.loadContestDbLock += 2;
+			NomrehChrome.currentContest.scores = {};
+			NomrehChrome.currentContest.penalties = {};
+		}
 
 		var _handleCompletion = function(aReason) {
 			if (aReason != Components.interfaces.mozIStorageStatementCallback.REASON_FINISHED) {
@@ -248,6 +261,35 @@ NomrehChrome = {
 							'fname': row.getResultByName("fname"),
 							'lname': row.getResultByName("lname")
 						});
+					}
+				},
+				handleError: _handleError,
+				handleCompletion: _handleCompletion
+			});
+		}
+
+		if ('scores_penalties' in flags) {
+			let statement = this.currentContestDb.createStatement("SELECT player_id, judge_id, test_id, val FROM scores");
+			statement.executeAsync({
+				handleResult: function(aResultSet) {
+					for (let row = aResultSet.getNextRow(); row;
+							row = aResultSet.getNextRow()) {
+						NomrehChrome.currentContest.scores[row.getResultByName("player_id") + '-' +
+							row.getResultByName("judge_id") + '-' +
+							row.getResultByName("test_id")] = row.getResultByName("val");
+					}
+				},
+				handleError: _handleError,
+				handleCompletion: _handleCompletion
+			});
+
+			let statement2 = this.currentContestDb.createStatement("SELECT player_id, test_id, val FROM penalties");
+			statement2.executeAsync({
+				handleResult: function(aResultSet) {
+					for (let row = aResultSet.getNextRow(); row;
+							row = aResultSet.getNextRow()) {
+						NomrehChrome.currentContest.penalties[row.getResultByName("player_id") + '-' +
+							row.getResultByName("test_id")] = row.getResultByName("val");
 					}
 				},
 				handleError: _handleError,
@@ -369,6 +411,7 @@ NomrehChrome = {
 			' onkeypress="return NomrehChrome.' + on_keypress + '(event, this);"' +
 			' onblur="NomrehChrome.editBlur(event, this)" />');
 		element.children()[0].focus();
+		element.children()[0].select();
 	},
 	editKeyUp: function(event, element, on_change, on_keyup) {
 		var keyCode = ('which' in event) ? event.which : event.keyCode;
@@ -469,6 +512,11 @@ NomrehChrome = {
 		if (! (keyCode in VALID_DECIMAL_KEYS)) {
 			return false;
 		}
+
+		if ((keyCode == 46) && (element.value.indexOf(".") !== -1)) {
+			return false;
+		}
+
 		return true;
 	},
 	removeContest: function(_id, title) {
@@ -550,14 +598,17 @@ NomrehChrome = {
 		this.currentContestDb.executeSimpleSQL(sql);
 		let statement = this.currentContestDb.createStatement("SELECT last_insert_rowid() as new_id FROM players");
 		statement.executeStep();
-		this.currentPlayerId = statement.row.new_id;
-		var html = '<li id="player-li-' + this.currentPlayerId + '"><a data-dbid="' + this.currentPlayerId;
+		var _id = statement.row.new_id;
+		var html = '<li id="player-li-' + _id + '"><a data-dbid="' + _id;
 		html += '" href="#" onclick="NomrehChrome.selectPlayer(this)">' + p.fname + ' ' + p.lname + '</a></li>';
 		this.playersUl.innerHTML += html;
-		this.selectPlayer(document.getElementById("player-li-" + this.currentPlayerId).firstChild);
+		this.selectPlayer(document.getElementById("player-li-" + _id).firstChild);
 	},
 	selectPlayer: function(element) {
 		this.showLoading();
+		if (this.toBeStored) {
+			this.storeTheStuff();
+		}
 		$("#players-ul .active").removeClass('active');
 		var el = $(element);
 		el.parent().addClass('active');
@@ -570,38 +621,91 @@ NomrehChrome = {
 		document.getElementById("player-notes").value = statement.row.notes;
 
 		var thead = "<tr><th rowspan='2'>" + this.getMessage("nomreh.scroing_title_test") + "</th>";
-		thead += "<th style='text-align: center' colspan='" + this.currentContest.judges.num + "'>" + this.getMessage("nomreh.scroing_title_scores_by_judges") + "</th>";
-		thead += "<th rowspan='2'>TODO</th>";
-		thead += "<th rowspan='2'>TODO</th>";
-		thead += "<th rowspan='2'>TODO</th></tr><tr>";
+		thead += "<th class='center' colspan='" + this.currentContest.judges.num + "'>" + this.getMessage("nomreh.scroing_title_scores_by_judges") + "</th>";
+		thead += "<th rowspan='2'>" + this.getMessage("nomreh.scroing_title_average_by_judges") + "</th>";
+		thead += "<th rowspan='2'>" + this.getMessage("nomreh.scroing_title_penalty") + "</th>";
+		thead += "<th rowspan='2'>" + this.getMessage("nomreh.scroing_title_final") + "</th></tr><tr>";
 		for (j_id in this.currentContest.judges) {
 			if (j_id == 'num') continue;
 			thead += "<td>" + this.currentContest.judges[j_id] + "</td>";
 		}
 		thead += "</tr>";
+		document.getElementById("scoring-thead").innerHTML = thead;
 
+		this.loadContestDb({'scores_penalties': true, 'callback': this.selectPlayerOnLoad});
+	},
+	selectPlayerOnLoad: function() {
 		var tbody = "";
 		for (_id in this.currentContest.tests) {
 			if (_id == 'num') continue;
 			tbody += "<tr><td>" + this.currentContest.tests[_id].title + "</td>";
 			for (j_id in this.currentContest.judges) {
 				if (j_id != 'num') {
-					tbody += '<td><input type="text" maxlength="3" onkeypress="return NomrehChrome.numericInput(event, this);" class="input-small" style="width: 2em" /></td>';
+					var k = '' + this.currentPlayerId + '-' + j_id + '-' + _id;
+					var v = '';
+					if (this.currentContest.scores[k] || (this.currentContest.scores[k] == 0)) {
+						v = this.currentContest.scores[k];
+					}
+					tbody += '<td><input class="score-i" data-tid="' + _id + '" data-jid="' + j_id;
+					tbody += '" type="text" maxlength="3" onkeypress="return NomrehChrome.numericInput(event, this);"';
+					tbody += ' value="' + v + '" style="width: 2em" /></td>';
 				}
 			}
-			tbody += "<td>.</td>";
-			tbody += '<td><input type="text" maxlength="4" onkeypress="return NomrehChrome.numericInput(event, this);" class="input-small" style="width: 2em" /></td>';
-			tbody += "<td>.</td></tr>";
+			var k = '' + this.currentPlayerId + '-' + _id;
+			var v = '';
+			if (this.currentContest.penalties[k] || (this.currentContest.penalties[k] == 0)) {
+				v = this.currentContest.penalties[k];
+			}
+			tbody += "<td class='center' id='score-average-" + _id + "'></td>";
+			tbody += '<td class="input-prepend"><span class="add-on">-</span>';
+			tbody += '<input class="penalty-i" data-tid="' + _id + '" type="text" maxlength="4"';
+			tbody += ' onkeypress="return NomrehChrome.numericInput(event, this);" style="width: 2em"';
+			tbody += ' value="' + v + '" /></td>';
+			tbody += "<td class='center' id='score-final-" + _id + "'>.</td></tr>";
 		}
 
-		document.getElementById("scoring-thead").innerHTML = thead;
+		tbody += "<tr><td class='reverse' colspan='" + (this.currentContest.judges.num + 3);
+		tbody += "' style='font-weight: bold'>" + this.getMessage("nomreh.scroing_title_total") + "</td>";
+		tbody += "<td class='center' style='font-weight: bold' id='score-final'></td></tr>";
+
 		document.getElementById("scoring-tbody").innerHTML = tbody;
+
+		this.toBeStored = this.savePlayerAndScores;
 
 		$(this.scoringPanelDiv).show();
 		this.hideLoading();
 	},
+	savePlayerAndScores: function() {
+		var sql = 'UPDATE players SET notes="' + document.getElementById("player-notes").value + '" WHERE id=' + this.currentPlayerId;
+		this.currentContestDb.executeSimpleSQL(sql);
+		const p_sql_pre = 'INSERT INTO penalties(player_id, test_id, val) VALUES(';
+		$(".penalty-i").each(function() {
+			if (this.value) {
+				NomrehChrome.currentContestDb.executeSimpleSQL(p_sql_pre + NomrehChrome.currentPlayerId + ', ' + this.getAttribute("data-tid") + ', ' + this.value + ')');
+			}
+		});
+		const s_sql_pre = 'INSERT INTO scores(player_id, judge_id, test_id, val) VALUES(';
+		$(".score-i").each(function() {
+			if (this.value) {
+				NomrehChrome.currentContestDb.executeSimpleSQL(s_sql_pre + NomrehChrome.currentPlayerId + ', ' + this.getAttribute("data-jid") + ', ' + this.getAttribute("data-tid") + ', ' + this.value + ')');
+			}
+		});
+	},
 	nextPlayer: function() {
-		// TODO
+		var catchNext = false;
+		for (p_order in this.currentContest.players) {
+			var p = this.currentContest.players[p_order];
+			if (catchNext) {
+				this.selectPlayer(document.getElementById("player-li-" + p.id).firstChild);
+				catchNext = false;
+				break;
+			} else if (this.currentPlayerId == p.id) {
+				catchNext = true;
+			}
+		}
+		if (catchNext) {
+			this.newPlayer();
+		}
 	},
 	deletePlayer: function() {
 		let statement = this.currentContestDb.createStatement("SELECT fname, lname FROM players WHERE id=" + this.currentPlayerId);
