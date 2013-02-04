@@ -48,6 +48,10 @@ NomrehChrome = {
 			this.contestsDbConnection.createTable("contests", "id INTEGER PRIMARY KEY, title TEXT, date TEXT DEFAULT CURRENT_TIMESTAMP");
 		}
 
+		window.addEventListener("beforeunload", function( event ) {
+			NomrehChrome.storeTheStuff();
+		}, false);
+
 		this.loadContests();
 	},
 	showLoading: function() {
@@ -80,14 +84,16 @@ NomrehChrome = {
 		}
 	},
 	storeTheStuff: function() {
-		this.toBeStored.call(this);
-		this.toBeStored = 0;
+		if (this.toBeStored) {
+			this.toBeStored.call(this);
+			this.toBeStored = 0;
+		}
 	},
 	goto: function(page, subpage) {
-		if (this.toBeStored) {
-			this.storeTheStuff();
-		}
+		this.storeTheStuff();
+
 		if (page == this.currentPage) return;
+
 		this.currentPage = page;
 		$('.npage').hide();
 		if (page == 'contest') {
@@ -269,13 +275,12 @@ NomrehChrome = {
 		}
 
 		if ('scores_penalties' in flags) {
-			let statement = this.currentContestDb.createStatement("SELECT player_id, judge_id, test_id, val FROM scores");
+			let statement = this.currentContestDb.createStatement("SELECT judge_id, test_id, val FROM scores WHERE player_id=" + this.currentPlayerId);
 			statement.executeAsync({
 				handleResult: function(aResultSet) {
 					for (let row = aResultSet.getNextRow(); row;
 							row = aResultSet.getNextRow()) {
-						NomrehChrome.currentContest.scores[row.getResultByName("player_id") + '-' +
-							row.getResultByName("judge_id") + '-' +
+						NomrehChrome.currentContest.scores[row.getResultByName("judge_id") + '-' +
 							row.getResultByName("test_id")] = row.getResultByName("val");
 					}
 				},
@@ -283,13 +288,12 @@ NomrehChrome = {
 				handleCompletion: _handleCompletion
 			});
 
-			let statement2 = this.currentContestDb.createStatement("SELECT player_id, test_id, val FROM penalties");
+			let statement2 = this.currentContestDb.createStatement("SELECT test_id, val FROM penalties WHERE player_id=" + this.currentPlayerId);
 			statement2.executeAsync({
 				handleResult: function(aResultSet) {
 					for (let row = aResultSet.getNextRow(); row;
 							row = aResultSet.getNextRow()) {
-						NomrehChrome.currentContest.penalties[row.getResultByName("player_id") + '-' +
-							row.getResultByName("test_id")] = row.getResultByName("val");
+						NomrehChrome.currentContest.penalties[row.getResultByName("test_id")] = row.getResultByName("val");
 					}
 				},
 				handleError: _handleError,
@@ -606,9 +610,9 @@ NomrehChrome = {
 	},
 	selectPlayer: function(element) {
 		this.showLoading();
-		if (this.toBeStored) {
-			this.storeTheStuff();
-		}
+
+		this.storeTheStuff();
+
 		$("#players-ul .active").removeClass('active');
 		var el = $(element);
 		el.parent().addClass('active');
@@ -623,6 +627,7 @@ NomrehChrome = {
 		var thead = "<tr><th rowspan='2'>" + this.getMessage("nomreh.scroing_title_test") + "</th>";
 		thead += "<th class='center' colspan='" + this.currentContest.judges.num + "'>" + this.getMessage("nomreh.scroing_title_scores_by_judges") + "</th>";
 		thead += "<th rowspan='2'>" + this.getMessage("nomreh.scroing_title_average_by_judges") + "</th>";
+		thead += "<th rowspan='2'>" + this.getMessage("nomreh.scroing_title_factor") + "</th>";
 		thead += "<th rowspan='2'>" + this.getMessage("nomreh.scroing_title_penalty") + "</th>";
 		thead += "<th rowspan='2'>" + this.getMessage("nomreh.scroing_title_final") + "</th></tr><tr>";
 		for (j_id in this.currentContest.judges) {
@@ -641,39 +646,123 @@ NomrehChrome = {
 			tbody += "<tr><td>" + this.currentContest.tests[_id].title + "</td>";
 			for (j_id in this.currentContest.judges) {
 				if (j_id != 'num') {
-					var k = '' + this.currentPlayerId + '-' + j_id + '-' + _id;
+					var k = '' + j_id + '-' + _id;
 					var v = '';
 					if (this.currentContest.scores[k] || (this.currentContest.scores[k] == 0)) {
 						v = this.currentContest.scores[k];
 					}
-					tbody += '<td><input class="score-i" data-tid="' + _id + '" data-jid="' + j_id;
-					tbody += '" type="text" maxlength="3" onkeypress="return NomrehChrome.numericInput(event, this);"';
-					tbody += ' value="' + v + '" style="width: 2em" /></td>';
+					tbody += '<td><input class="score-i" id="si-' + k + '" data-tid="' + _id + '" data-jid="' + j_id;
+					tbody += '" onkeypress="return NomrehChrome.numericInput(event, this);"';
+					tbody += ' onchange="NomrehChrome.reCalAverage(' + _id + ')"';
+					tbody += ' type="text" maxlength="3" value="' + v + '" style="width: 2em" /></td>';
 				}
 			}
-			var k = '' + this.currentPlayerId + '-' + _id;
+			var k = '' + _id;
 			var v = '';
 			if (this.currentContest.penalties[k] || (this.currentContest.penalties[k] == 0)) {
 				v = this.currentContest.penalties[k];
 			}
 			tbody += "<td class='center' id='score-average-" + _id + "'></td>";
+			tbody += "<td class='center'>" + this.currentContest.tests[_id].factor + "</td>";
 			tbody += '<td class="input-prepend"><span class="add-on">-</span>';
-			tbody += '<input class="penalty-i" data-tid="' + _id + '" type="text" maxlength="4"';
-			tbody += ' onkeypress="return NomrehChrome.numericInput(event, this);" style="width: 2em"';
-			tbody += ' value="' + v + '" /></td>';
-			tbody += "<td class='center' id='score-final-" + _id + "'>.</td></tr>";
+			tbody += '<input class="penalty-i" id="pi-' + k + '" data-tid="' + _id + '" type="text" maxlength="4"';
+			tbody += ' onkeypress="return NomrehChrome.numericInput(event, this);"';
+			tbody += ' onchange="NomrehChrome.reCalFinal(' + _id + ')"';
+			tbody += ' value="' + v + '" style="width: 2em" /></td>';
+			tbody += "<td class='center' id='score-final-" + _id + "'></td></tr>";
 		}
 
-		tbody += "<tr><td class='reverse' colspan='" + (this.currentContest.judges.num + 3);
+		tbody += "<tr><td class='reverse' colspan='" + (this.currentContest.judges.num + 4);
 		tbody += "' style='font-weight: bold'>" + this.getMessage("nomreh.scroing_title_total") + "</td>";
 		tbody += "<td class='center' style='font-weight: bold' id='score-final'></td></tr>";
 
 		document.getElementById("scoring-tbody").innerHTML = tbody;
 
+		for (_id in this.currentContest.tests) {
+			if (_id == 'num') continue;
+			this.reCalAverage(_id);
+			this.reCalFinal(_id);
+		}
+
 		this.toBeStored = this.savePlayerAndScores;
 
 		$(this.scoringPanelDiv).show();
 		this.hideLoading();
+	},
+	reCalAverage: function(_id) {
+		var nums = [];
+		var elements = [];
+		for (j_id in this.currentContest.judges) {
+			if (j_id != 'num') {
+				var el = document.getElementById('si-' + j_id + '-' + _id);
+				var v = parseFloat(el.value);
+				el = $(el);
+				if (v || (v == 0)) {
+					elements.push(el);
+					nums.push(v);
+				}
+				el.removeClass('ignored');
+			}
+		}
+		if ((nums.length > 2 ) && (nums.length = this.currentContest.judges.num)) {
+			var s = 0.0;
+			var min = Math.min.apply(Math, nums) + 0.00001;
+			var max = Math.max.apply(Math, nums) - 0.00001;
+			var min_el = false;
+			var max_el = false;
+
+			for (i in nums) {
+				if ((nums[i] < min) && (! min_el)) {
+					min_el = elements[i];
+				} else if ((nums[i] > max) && (! max_el)) {
+					max_el = elements[i];
+				} else {
+					s += nums[i];
+				}
+			}
+
+			var avg = s / (nums.length - 2);
+			avg = avg.toFixed(2);
+			while ((avg.charAt(avg.length-1) == "0") || (avg.charAt(avg.length-1) == ".")) {
+				avg = avg.slice(0, -1);
+			}
+			document.getElementById('score-average-' + _id).innerHTML = avg;
+			min_el.addClass('ignored');
+			max_el.addClass('ignored');
+			this.reCalFinal(_id);
+		} else {
+			document.getElementById('score-average-' + _id).innerHTML = '';
+			document.getElementById('score-final-' + _id).innerHTML = '';
+		}
+	},
+	reCalFinal: function(_id) {
+		var v = parseFloat(document.getElementById('score-average-' + _id).innerHTML);
+		var p = parseFloat(document.getElementById('pi-' + _id).value) || 0;
+		if (v || (v == 0)) {
+			var t = v * this.currentContest.tests[_id].factor - p;
+			t = t.toFixed(2);
+			while ((t.charAt(t.length-1) == "0") || (t.charAt(t.length-1) == ".")) {
+				t = t.slice(0, -1);
+			}
+			document.getElementById('score-final-' + _id).innerHTML = t;
+
+			// Total for all tests
+			var tt = 0;
+			for (t_id in this.currentContest.tests) {
+				if (t_id == 'num') continue;
+				var vv = parseFloat(document.getElementById('score-final-' + t_id).innerHTML);
+				if (vv || (vv == 0)) {
+					tt += vv;
+				} else {
+					document.getElementById('score-final').innerHTML = '';
+					return;
+				}
+			}
+			document.getElementById('score-final').innerHTML = '' + tt;
+		} else {
+			document.getElementById('score-final-' + _id).innerHTML = '';
+			document.getElementById('score-final').innerHTML = '';
+		}
 	},
 	savePlayerAndScores: function() {
 		var sql = 'UPDATE players SET notes="' + document.getElementById("player-notes").value + '" WHERE id=' + this.currentPlayerId;

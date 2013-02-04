@@ -42,3 +42,7 @@ page>vbox {
 #scoring .reverse {
 	text-align: right;
 }
+#scoring input.ignored {
+	text-decoration: line-through;
+    background-color: #E0CEAF;
+}

@@ -89,6 +89,7 @@
 					<ul id="players-ul" class="nav nav-list" />
 					<br />
 					<button type="button" class="btn btn-block btn-small"
+						accesskey="&nomreh.new_player.accesskey;"
 						onclick="NomrehChrome.newPlayer();">&nomreh.new_player;</button>
 				</div>
 				<div id="scoring-panel-div" class="span9 well">
@@ -109,7 +110,8 @@
 							onkeypress="return NomrehChrome.editDefaultKeyPress(event, this);" />
 					</div>
 					<div>
-						<button type="button" class="btn btn-large btn-primary" 
+						<button type="button" class="btn btn-large btn-primary"
+							accesskey="&nomreh.player_next.accesskey;"
 							onclick="NomrehChrome.nextPlayer();">&nomreh.player_next;</button>
 						<button type="button" class="btn btn-large btn-danger"
 							onclick="NomrehChrome.deletePlayer();">&nomreh.player_delete;</button>
