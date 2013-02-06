@@ -156,11 +156,12 @@ NomrehChrome = {
 			$(this.scoringPanelDiv).hide();
 			this.loadContestDb({'players': true, 'callback': this.loadPlayersList});
 		} else if (page == 'rankings') {
+			this.showLoading();
 			this.setBreadcrumb([
 				['contest', this.currentContest.title, this.currentContest._id],
 				['rankings', this.getMessage("nomreh.rankings")]
 			]);
-			$('#rankings').show();
+			this.loadContestDb({'tests': true, 'players': true, 'final_scores': true, 'callback': this.loadRankings});
 		}
 	},
 	loadContestDbLock: 0,
@@ -185,6 +186,10 @@ NomrehChrome = {
 			NomrehChrome.loadContestDbLock += 2;
 			NomrehChrome.currentContest.scores = {};
 			NomrehChrome.currentContest.penalties = {};
+		}
+		if ('final_scores' in flags) {
+			NomrehChrome.loadContestDbLock += 1;
+			NomrehChrome.currentContest.final_scores = {};
 		}
 
 		var _handleCompletion = function(aReason) {
@@ -257,7 +262,7 @@ NomrehChrome = {
 		}
 
 		if ('players' in flags) {
-			let statement = this.currentContestDb.createStatement("SELECT id, fname, lname FROM players ORDER BY id");
+			let statement = this.currentContestDb.createStatement("SELECT id, fname, lname, org FROM players ORDER BY id");
 			statement.executeAsync({
 				handleResult: function(aResultSet) {
 					for (let row = aResultSet.getNextRow(); row;
@@ -265,7 +270,8 @@ NomrehChrome = {
 						NomrehChrome.currentContest.players.push({
 							'id': row.getResultByName("id"),
 							'fname': row.getResultByName("fname"),
-							'lname': row.getResultByName("lname")
+							'lname': row.getResultByName("lname"),
+							'org': row.getResultByName("org")
 						});
 					}
 				},
@@ -294,6 +300,20 @@ NomrehChrome = {
 					for (let row = aResultSet.getNextRow(); row;
 							row = aResultSet.getNextRow()) {
 						NomrehChrome.currentContest.penalties[row.getResultByName("test_id")] = row.getResultByName("penalty");
+					}
+				},
+				handleError: _handleError,
+				handleCompletion: _handleCompletion
+			});
+		}
+
+		if ('final_scores' in flags) {
+			let statement = this.currentContestDb.createStatement("SELECT player_id, test_id, final FROM fscores");
+			statement.executeAsync({
+				handleResult: function(aResultSet) {
+					for (let row = aResultSet.getNextRow(); row;
+							row = aResultSet.getNextRow()) {
+						NomrehChrome.currentContest.final_scores[row.getResultByName("player_id") + '-' + row.getResultByName("test_id")] = row.getResultByName("final");
 					}
 				},
 				handleError: _handleError,
@@ -334,8 +354,8 @@ NomrehChrome = {
 		document.getElementById("tests-tbody").innerHTML = html;
 
 		this.setBreadcrumb([['contest', this.currentContest.title]]);
-		this.hideLoading();
 		$('#contest').show();
+		this.hideLoading();
 	},
 	loadContests: function() {
 		let statement = this.contestsDbConnection.createStatement("SELECT id, title, date FROM contests ORDER BY date DESC");
@@ -381,6 +401,44 @@ NomrehChrome = {
 		}
 		this.playersUl.innerHTML = html;
 		$('#scoring').show();
+	},
+	loadRankings: function() {
+		var thead = "<tr><th rowspan='2'>" + this.getMessage("nomreh.rankings_title_player_name") + "</th>";
+		thead += "<th rowspan='2'>" + this.getMessage("nomreh.rankings_title_player_org") + "</th>";
+		thead += "<th class='center' colspan='" + this.currentContest.tests.num + "'>" + this.getMessage("nomreh.rankings_title_test_scores") + "</th>";
+		thead += "<th class='center' rowspan='2'>" + this.getMessage("nomreh.rankings_title_total_score") + "</th></tr><tr>";
+		for (_id in this.currentContest.tests) {
+			if (_id == 'num') continue;
+			thead += "<th class='center'>" + this.currentContest.tests[_id].title + "</th>";
+		}
+		thead += "</tr>";
+
+		var tbody = "";
+		for (p_order in this.currentContest.players) {
+			var p = this.currentContest.players[p_order];
+			tbody += "<tr><td>" + p.fname + ' ' + p.lname + "</td><td>" + p.org + "</td>";
+			var s = 0;
+			for (_id in this.currentContest.tests) {
+				if (_id == 'num') continue;
+				var v = this.currentContest.final_scores[p.id + '-' + _id] || 0;
+				s += v;
+				v = v.toFixed(2);
+				while ((v.charAt(v.length-1) == "0") || (v.charAt(v.length-1) == ".")) {
+					v = v.slice(0, -1);
+				}
+				tbody += "<td class='center'>" + v + "</td>";
+			}
+			var v = s.toFixed(2);
+			while ((v.charAt(v.length-1) == "0") || (v.charAt(v.length-1) == ".")) {
+				v = v.slice(0, -1);
+			}
+			tbody += "<td class='center'>" + v + "</td></tr>";
+		}
+
+		document.getElementById("rankings-thead").innerHTML = thead;
+		document.getElementById("rankings-tbody").innerHTML = tbody;
+		$('#rankings').show();
+		this.hideLoading();
 	},
 	getLocalDirectory: function() {
 		let directoryService =
@@ -852,7 +910,7 @@ NomrehChrome = {
 		try {
 			return this.strings.getMessage(msg, ar);
 		} catch (e) {
-			alert(null, "Error reading string resource: " + msg); // Do not localize!
+			alert("Error reading string resource: " + msg); // Do not localize!
 		}
     },
 	strings: {

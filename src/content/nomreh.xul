@@ -122,7 +122,11 @@
 	</div>
 
 	<div id="rankings" class="container-fluid npage" style="display: none">
-		<h1>TODO</h1>
+		<h1>&nomreh.rankings;</h1>
+		<table class="table table-bordered table-hover">
+			<thead id="rankings-thead" />
+			<tbody id="rankings-tbody" />
+		</table>
 	</div>
 
 	<div id="loading" style="display: none;">

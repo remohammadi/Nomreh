@@ -36,12 +36,13 @@ page>vbox {
 	color: #9D261D;
 }
 
-#scoring .center {
-	text-align: center;
+.center {
+	text-align: center!important;
 }
-#scoring .reverse {
-	text-align: right;
+.reverse {
+	text-align: right!important;
 }
+
 #scoring input.ignored {
 	text-decoration: line-through;
     background-color: #E0CEAF;
