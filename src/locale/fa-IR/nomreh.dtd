@@ -1,0 +1,23 @@
+<!ENTITY nomreh.menu.label		"پنل امتیازدهی «نمره»">
+<!ENTITY nomreh.menu.accesskey	"ن">
+<!ENTITY nomreh.name			"نمره">
+<!ENTITY nomreh.contests		"مسابقات">
+<!ENTITY nomreh.new_contest		"مسابقهٔ جدید">
+<!ENTITY nomreh.title			"عنوان">
+<!ENTITY nomreh.creation_date	"تاریخ ایجاد">
+<!ENTITY nomreh.delete_qm		"حذف?">
+<!ENTITY nomreh.judges				"داوران">
+<!ENTITY nomreh.tests				"تست‌ها">
+<!ENTITY nomreh.add					"اضافه">
+<!ENTITY nomreh.judge_name			"نام">
+<!ENTITY nomreh.test_title			"عنوان">
+<!ENTITY nomreh.test_factor			"ضریب">
+<!ENTITY nomreh.input_scores		"صفحهٔ امتیازدهی">
+<!ENTITY nomreh.rankings			"رتبه‌بندی">
+<!ENTITY nomreh.players				"بازیکنان">
+<!ENTITY nomreh.new_player			"بازیکن جدید">
+<!ENTITY nomreh.new_player.accesskey	"ب">
+<!ENTITY nomreh.player_notes_ph		"نکات">
+<!ENTITY nomreh.player_next			"بعدی ≫">
+<!ENTITY nomreh.player_next.accesskey	"د">
+<!ENTITY nomreh.player_delete		"حذف">

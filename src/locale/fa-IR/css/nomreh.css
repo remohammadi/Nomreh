@@ -1,0 +1,49 @@
+page>vbox {
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+	margin: 0;
+	font-size: 16px;
+	line-height: 22px;
+}
+
+#loading {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #DEDCE6;
+	opacity: 0.8;
+    z-index: 100;
+}
+#loading>div {
+    position: relative;
+	left: 50%;
+	top: 50%;
+}
+
+.nomreh-editable {
+	cursor: pointer;
+}
+.nomreh-editable:hover {
+	background: #CAE8A2;
+}
+
+#scoring span.add-on {
+	padding-right: 0;
+	padding-left: 0;
+	color: #9D261D;
+}
+
+.center {
+	text-align: center!important;
+}
+.reverse {
+	text-align: left!important;
+}
+
+#scoring input.ignored {
+	text-decoration: line-through;
+    background-color: #E0CEAF;
+}

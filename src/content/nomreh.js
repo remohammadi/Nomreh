@@ -614,6 +614,7 @@ NomrehChrome = {
 								this.getMessage("nomreh.delete_judge_sure"))) {
 				this.showLoading();
 				this.currentContestDb.executeSimpleSQL("DELETE FROM scores WHERE judge_id=" + _id);
+				// TODO: invalidate rankings
 				_del();
 			}
 		} else {
@@ -641,6 +642,7 @@ NomrehChrome = {
 				this.showLoading();
 				this.currentContestDb.executeSimpleSQL("DELETE FROM scores WHERE test_id=" + _id);
 				this.currentContestDb.executeSimpleSQL("DELETE FROM fscores WHERE test_id=" + _id);
+				// TODO: invalidate rankings
 				_del();
 			}
 		} else {

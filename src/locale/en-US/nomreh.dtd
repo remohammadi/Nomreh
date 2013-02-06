@@ -19,7 +19,6 @@
 <!ENTITY nomreh.new_player			"New Player">
 <!ENTITY nomreh.new_player.accesskey	"P">
 <!ENTITY nomreh.player_notes_ph		"Notes">
-<!ENTITY nomreh.player_notes_saved	"Saved!">
 <!ENTITY nomreh.player_next			"Next ≫">
 <!ENTITY nomreh.player_next.accesskey	"N">
 <!ENTITY nomreh.player_delete		"Delete">
