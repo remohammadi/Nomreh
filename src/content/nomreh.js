@@ -418,19 +418,26 @@ NomrehChrome = {
 			var p = this.currentContest.players[p_order];
 			tbody += "<tr><td>" + p.fname + ' ' + p.lname + "</td><td>" + p.org + "</td>";
 			var s = 0;
+			var ft = 0;
 			for (_id in this.currentContest.tests) {
 				if (_id == 'num') continue;
 				var v = this.currentContest.final_scores[p.id + '-' + _id] || 0;
 				s += v;
+				ft += this.currentContest.tests[_id].factor;
 				v = v.toFixed(2);
-				while ((v.charAt(v.length-1) == "0") || (v.charAt(v.length-1) == ".")) {
+				while ((v.indexOf(".") !== -1) && (v.charAt(v.length-1) == "0") || (v.charAt(v.length-1) == ".")) {
 					v = v.slice(0, -1);
 				}
 				tbody += "<td class='center'>" + v + "</td>";
 			}
-			var v = s.toFixed(2);
-			while ((v.charAt(v.length-1) == "0") || (v.charAt(v.length-1) == ".")) {
-				v = v.slice(0, -1);
+			if (ft > 0) {
+				s = s * 10.0 / ft;
+				var v = s.toFixed(2);
+				while ((v.indexOf(".") !== -1) && (v.charAt(v.length-1) == "0") || (v.charAt(v.length-1) == ".")) {
+					v = v.slice(0, -1);
+				}
+			} else {
+				v = "ERROR";
 			}
 			tbody += "<td class='center'>" + v + "</td></tr>";
 		}
@@ -799,7 +806,7 @@ NomrehChrome = {
 			if (min_el && max_el) {
 				var avg = s / (nums.length - 2);
 				avg = avg.toFixed(2);
-				while ((avg.charAt(avg.length-1) == "0") || (avg.charAt(avg.length-1) == ".")) {
+				while ((avg.indexOf(".") !== -1) && (avg.charAt(avg.length-1) == "0") || (avg.charAt(avg.length-1) == ".")) {
 					avg = avg.slice(0, -1);
 				}
 				document.getElementById('score-average-' + _id).innerHTML = avg;
@@ -819,15 +826,17 @@ NomrehChrome = {
 		if (v || (v_s == "0")) {
 			var t = v * this.currentContest.tests[_id].factor - p;
 			t = t.toFixed(2);
-			while ((t.charAt(t.length-1) == "0") || (t.charAt(t.length-1) == ".")) {
+			while ((t.indexOf(".") !== -1) && (t.charAt(t.length-1) == "0") || (t.charAt(t.length-1) == ".")) {
 				t = t.slice(0, -1);
 			}
 			document.getElementById('score-final-' + _id).innerHTML = t;
 
 			// Total for all tests
 			var tt = 0;
+			var ft = 0;
 			for (t_id in this.currentContest.tests) {
 				if (t_id == 'num') continue;
+				ft += this.currentContest.tests[t_id].factor;
 				var vv_s = document.getElementById('score-final-' + t_id).innerHTML;
 				var vv = parseFloat(vv_s);
 				if (vv || (vv_s == "0")) {
@@ -837,7 +846,16 @@ NomrehChrome = {
 					return;
 				}
 			}
-			document.getElementById('score-final').innerHTML = '' + tt;
+			if (ft > 0) {
+				tt = tt * 10.0 / ft;
+				tt = tt.toFixed(2);
+				while ((tt.indexOf(".") !== -1) && (tt.charAt(tt.length-1) == "0") || (tt.charAt(tt.length-1) == ".")) {
+					tt = tt.slice(0, -1);
+				}
+				document.getElementById('score-final').innerHTML = '' + tt;
+			} else {
+				document.getElementById('score-final').innerHTML = '';
+			}
 		} else {
 			document.getElementById('score-final-' + _id).innerHTML = '';
 			document.getElementById('score-final').innerHTML = '';
@@ -908,13 +926,13 @@ NomrehChrome = {
 		let el = $(element);
 		this.currentContestDb.executeSimpleSQL('UPDATE players SET org="' + new_val + '" WHERE id=' + this.currentPlayerId);
 	},
-    getMessage: function(msg, ar) {
+	getMessage: function(msg, ar) {
 		try {
 			return this.strings.getMessage(msg, ar);
 		} catch (e) {
 			alert("Error reading string resource: " + msg); // Do not localize!
 		}
-    },
+	},
 	strings: {
 		_sbs: Cc["@mozilla.org/intl/stringbundle;1"]
 			.getService(Ci.nsIStringBundleService)
