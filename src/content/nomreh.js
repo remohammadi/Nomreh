@@ -403,7 +403,9 @@ NomrehChrome = {
 		$('#scoring').show();
 	},
 	loadRankings: function() {
-		var thead = "<tr><th rowspan='2'>" + this.getMessage("nomreh.rankings_title_player_name") + "</th>";
+		var thead = "<tr>";
+		thead += "<th rowspan='2'>" + this.getMessage("nomreh.rankings_title_player_rank") + "</th>";
+		thead += "<th rowspan='2'>" + this.getMessage("nomreh.rankings_title_player_name") + "</th>";
 		thead += "<th rowspan='2'>" + this.getMessage("nomreh.rankings_title_player_org") + "</th>";
 		thead += "<th class='center' colspan='" + this.currentContest.tests.num + "'>" + this.getMessage("nomreh.rankings_title_test_scores") + "</th>";
 		thead += "<th class='center' rowspan='2'>" + this.getMessage("nomreh.rankings_title_total_score") + "</th></tr><tr>";
@@ -413,10 +415,10 @@ NomrehChrome = {
 		}
 		thead += "</tr>";
 
-		var tbody = "";
+		var trows = [];
 		for (p_order in this.currentContest.players) {
 			var p = this.currentContest.players[p_order];
-			tbody += "<tr><td>" + p.fname + ' ' + p.lname + "</td><td>" + p.org + "</td>";
+			trow = "<td>" + p.fname + ' ' + p.lname + "</td><td>" + p.org + "</td>";
 			var s = 0;
 			var ft = 0;
 			for (_id in this.currentContest.tests) {
@@ -428,7 +430,7 @@ NomrehChrome = {
 				while ((v.indexOf(".") !== -1) && (v.charAt(v.length-1) == "0") || (v.charAt(v.length-1) == ".")) {
 					v = v.slice(0, -1);
 				}
-				tbody += "<td class='center'>" + v + "</td>";
+				trow += "<td class='center'>" + v + "</td>";
 			}
 			if (ft > 0) {
 				s = s * 10.0 / ft;
@@ -438,12 +440,31 @@ NomrehChrome = {
 				}
 			} else {
 				v = "ERROR";
+				s = 0;
 			}
-			tbody += "<td class='center'>" + v + "</td></tr>";
+			trow += "<td class='center'>" + v + "</td></tr>";
+			trows.push({html: trow, total: s});
 		}
 
-		document.getElementById("rankings-thead").innerHTML = thead;
-		document.getElementById("rankings-tbody").innerHTML = tbody;
+		trows.sort(function(a,b){return b.total - a.total});
+
+		var table = '<table id="rankings-table" class="table table-bordered table-hover">';
+		table += '<thead>' + thead + '</thead><tbody>';
+		var last_total = -1;
+		var last_rank = -1;
+		for (i in trows) {
+			r = parseInt(i) + 1;
+			if (trows[i].total == last_total) {
+				r = last_rank;
+			}
+			table += "<tr><td>" + r + "</td>" + trows[i].html;
+			last_total = trows[i].total;
+			last_rank = r;
+		}
+		table += '</tbody></table>';
+
+		document.getElementById("rankings-container").innerHTML = table;
+
 		$('#rankings').show();
 		this.hideLoading();
 	},

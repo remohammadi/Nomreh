@@ -16,6 +16,7 @@
 	<br />
 
 	<div class="container-fluid">
+        <span class="pull-right" style="font-size: smaller; padding: 8px">&nomreh.menu.label;</span>
 		<ul class="breadcrumb" id="breadcrumb">
 			<li class="active">&nomreh.contests;</li>
 		</ul>
@@ -123,10 +124,7 @@
 
 	<div id="rankings" class="container-fluid npage" style="display: none">
 		<h1>&nomreh.rankings;</h1>
-		<table class="table table-bordered table-hover">
-			<thead id="rankings-thead" />
-			<tbody id="rankings-tbody" />
-		</table>
+        <div id="rankings-container" />
 	</div>
 
 	<div id="loading" style="display: none;">
@@ -138,6 +136,7 @@
 
 	<xul:script type="application/javascript" src="chrome://global/content/contentAreaUtils.js" />
 	<xul:script type="application/javascript" src="chrome://nomreh/content/jquery-1.8.3.min.js" />
+	<xul:script type="application/javascript" src="chrome://nomreh/content/jquery.dataTables.min.js" />
 	<xul:script type="application/javascript" src="chrome://nomreh/content/bootstrap.min.js" />
 	<xul:script type="application/javascript" src="chrome://nomreh/content/nomreh.js" />
 </xul:vbox></xul:page>
