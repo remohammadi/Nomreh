@@ -12,7 +12,7 @@
 <!ENTITY nomreh.add					"Add">
 <!ENTITY nomreh.judge_name			"Name">
 <!ENTITY nomreh.test_title			"Title">
-<!ENTITY nomreh.test_factor			"Factor">
+<!ENTITY nomreh.test_factor			"Degree of Difficulty">
 <!ENTITY nomreh.input_scores		"Scoring Panel">
 <!ENTITY nomreh.rankings			"Rankings">
 <!ENTITY nomreh.players				"Players">

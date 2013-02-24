@@ -11,7 +11,7 @@
 <!ENTITY nomreh.add					"اضافه">
 <!ENTITY nomreh.judge_name			"نام">
 <!ENTITY nomreh.test_title			"عنوان">
-<!ENTITY nomreh.test_factor			"ضریب">
+<!ENTITY nomreh.test_factor			"درجه سختی">
 <!ENTITY nomreh.input_scores		"صفحهٔ امتیازدهی">
 <!ENTITY nomreh.rankings			"رتبه‌بندی">
 <!ENTITY nomreh.players				"بازیکنان">
