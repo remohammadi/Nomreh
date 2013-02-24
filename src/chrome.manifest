@@ -1,5 +1,6 @@
 content   nomreh                content/
 skin      nomreh  classic/1.0   skin/
 locale    nomreh  en-US         locale/en-US/
+locale    nomreh  fa-IR         locale/fa-IR/
 
 overlay chrome://browser/content/browser.xul  chrome://nomreh/content/browserOverlay.xul

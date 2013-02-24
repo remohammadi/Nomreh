@@ -1,9 +1,10 @@
 <!ENTITY nomreh.menu.label		"پنل امتیازدهی «نمره»">
 <!ENTITY nomreh.menu.accesskey	"ن">
 <!ENTITY nomreh.name			"نمره">
+<!ENTITY nomreh.preparing			"آماده‌سازی…">
 <!ENTITY nomreh.contests		"مسابقات">
 <!ENTITY nomreh.new_contest		"مسابقهٔ جدید">
-<!ENTITY nomreh.title			"عنوان">
+<!ENTITY nomreh.contest_title		"عنوان">
 <!ENTITY nomreh.creation_date	"تاریخ ایجاد">
 <!ENTITY nomreh.delete_qm		"حذف?">
 <!ENTITY nomreh.judges				"داوران">
